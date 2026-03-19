@@ -6,7 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -30,6 +31,11 @@ public class UserEntity {
     private String password;
 
     @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "user_entity_role",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @Enumerated(EnumType.STRING)
     private Set<Role> role;
 

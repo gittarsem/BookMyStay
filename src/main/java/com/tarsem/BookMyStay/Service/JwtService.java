@@ -24,20 +24,20 @@ public class JwtService {
     private final long REFRESH_TOKEN_TIME = 1000L * 60 * 60 * 24 * 10;
 
 
-    public String generateAccessToken(String username){
+    public String generateAccessToken(String email){
         Map<String,Object> claims=new HashMap<>();
 
         return Jwts.builder()
                 .claims(claims)
-                .subject(username)
+                .subject(email)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis()+ACCESS_TOKEN_TIME))
                 .signWith(getKey()).compact();
 
     }
-    public String generateRefreshToken(String username){
+    public String generateRefreshToken(String email){
         return Jwts.builder()
-                .subject(username)
+                .subject(email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_TIME))
                 .signWith(getKey())
@@ -78,5 +78,14 @@ public class JwtService {
 
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    public String getUserEmailFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return String.valueOf(claims.getSubject());
     }
 }
