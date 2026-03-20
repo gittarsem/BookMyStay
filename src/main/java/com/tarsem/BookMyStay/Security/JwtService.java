@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.Service;
+package com.tarsem.BookMyStay.Security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

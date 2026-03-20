@@ -1,8 +1,8 @@
 package com.tarsem.BookMyStay.Config;
 
 
-import com.tarsem.BookMyStay.Service.JwtService;
-import com.tarsem.BookMyStay.Service.MyUserDetailsService;
+import com.tarsem.BookMyStay.Security.JwtService;
+import com.tarsem.BookMyStay.Security.MyUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.Service;
+package com.tarsem.BookMyStay.Security;
 
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Entity.UserPrincipal;
@@ -17,7 +17,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.Set;
 
 @Service

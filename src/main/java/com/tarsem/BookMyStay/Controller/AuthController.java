@@ -1,6 +1,6 @@
 package com.tarsem.BookMyStay.Controller;
 
-import com.tarsem.BookMyStay.Service.AuthService;
+import com.tarsem.BookMyStay.Security.AuthService;
 import com.tarsem.BookMyStay.dto.LoginRequestDTO;
 import com.tarsem.BookMyStay.dto.LoginResponseDTO;
 import com.tarsem.BookMyStay.dto.SignUpRequestDTO;
