@@ -27,7 +27,7 @@ public class RoomEntity {
     private HotelEntity hotel;
 
     @Column(nullable = false)
-    private String hotelType;
+    private String roomType;
 
     @Column(nullable = false)
     private int capacity;
