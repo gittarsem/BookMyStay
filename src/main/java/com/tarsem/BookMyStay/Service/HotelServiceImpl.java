@@ -1,12 +1,14 @@
 package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
+import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Entity.UserPrincipal;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelRepo;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
+import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.dto.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.HotelResponseDTO;
 import lombok.AllArgsConstructor;
@@ -29,6 +31,9 @@ import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
 public class HotelServiceImpl implements HotelService {
     @Autowired
     private HotelRepo hotelRepo;
+
+    @Autowired
+    private InventoryService inventoryService;
 
     private final ModelMapper modelMapper;
 
@@ -118,6 +123,9 @@ public class HotelServiceImpl implements HotelService {
         );
         if(!user.equals(hotel.getOwner())){
             throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
+        }
+        for(RoomEntity room: hotel.getRooms()){
+            inventoryService.initializeRoomforAYear(room);
         }
         hotel.setActive(true);
         return "Hotel is now Active";

@@ -20,7 +20,7 @@ public class InventoryController {
     @Autowired
     private InventoryService inventoryService;
 
-    @GetMapping("/room/{roomId")
+    @GetMapping("/room/{roomId}")
     public ResponseEntity<List<InventoryDTO>> getAllInventoryByRoom(@PathVariable Long roomId){
         return ResponseEntity.ok(inventoryService.getAllInventoryByRoom(roomId));
     }

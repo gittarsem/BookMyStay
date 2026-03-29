@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Service;
 
+import com.tarsem.BookMyStay.Entity.InventoryEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.InventoryRepo;
@@ -13,6 +14,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
@@ -27,6 +30,32 @@ public class InventoryServiceImpl implements InventoryService {
     private final ModelMapper modelMapper;
 
 
+    @Override
+    public void initializeRoomforAYear(RoomEntity room){
+        LocalDate today=LocalDate.now();
+        LocalDate endDate=today.plusYears(1);
+        for(;!today.isAfter(endDate); today=today.plusDays(1)){
+            InventoryEntity inventory= InventoryEntity.builder()
+                    .room(room)
+                    .hotel(room.getHotel())
+                    .city(room.getHotel().getHotelContactInfo().getLocation())
+                    .date(today)
+                    .bookCount(0)
+                    .reservedCount(0)
+                    .totalCount(room.getCapacity())
+                    .surgeFactor(BigDecimal.ONE)
+                    .price(room.getPrice())
+                    .closed(false)
+                    .build();
+            inventoryRepo.save(inventory);
+        }
+    }
+
+    @Override
+    public void deleteAllInventories(RoomEntity room){
+        log.info("Deleting the inventories of room with id: {}", room.getId());
+        inventoryRepo.deleteByRoom(room);
+    }
     @Override
     public List<InventoryDTO> getAllInventoryByRoom(Long roomId) {
         log.info("Getting All inventory by room for room with id: {}", roomId);

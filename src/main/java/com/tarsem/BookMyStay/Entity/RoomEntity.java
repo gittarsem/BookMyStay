@@ -32,8 +32,8 @@ public class RoomEntity {
     @Column(nullable = false)
     private int capacity;
 
-    @Column(nullable = false)
-    private Double Price;
+    @Column(nullable = false,precision = 10,scale = 2)
+    private BigDecimal Price;
 
     @CreationTimestamp
     @Column(updatable = false)

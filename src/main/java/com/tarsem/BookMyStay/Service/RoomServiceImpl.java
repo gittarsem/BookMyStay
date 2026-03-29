@@ -6,6 +6,7 @@ import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelRepo;
 import com.tarsem.BookMyStay.Repositroy.RoomRepo;
+import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.Service.Interfaces.RoomService;
 import com.tarsem.BookMyStay.dto.RoomDTO;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,9 @@ public class RoomServiceImpl implements RoomService {
     @Autowired
     private RoomRepo roomRepo;
 
+    @Autowired
+    private InventoryService inventoryService;
+
     private final ModelMapper modelMapper;
 
     @Override
@@ -41,6 +45,9 @@ public class RoomServiceImpl implements RoomService {
         RoomEntity room=modelMapper.map(roomDTO,RoomEntity.class);
         room.setHotel(hotel);
         roomRepo.save(room);
+        if(hotel.getActive()){
+            inventoryService.initializeRoomforAYear(room);
+        }
         return modelMapper.map(room,RoomDTO.class);
     }
 
@@ -93,7 +100,11 @@ public class RoomServiceImpl implements RoomService {
         HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
                 ()-> new ResourceNotFoundException("Hotel with this id does not exist")
         );
+        RoomEntity room=roomRepo.findById(roomId).orElseThrow(
+                () -> new ResourceNotFoundException("Room not found with ID: "+roomId)
+        );
         if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
+        inventoryService.deleteAllInventories(room);
         roomRepo.deleteById(roomId);
         return ("Deleted Room with id: "+roomId);
     }

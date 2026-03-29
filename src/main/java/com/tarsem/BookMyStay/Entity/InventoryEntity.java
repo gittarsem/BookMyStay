@@ -3,16 +3,19 @@ package com.tarsem.BookMyStay.Entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Date;
 
 @Data
 @Entity
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(
@@ -31,7 +34,11 @@ public class InventoryEntity {
     @JoinColumn(name = "room_id",nullable = false)
     private RoomEntity room;
 
-    private Date date;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hotel_id",nullable = false)
+    private HotelEntity hotel;
+
+    private LocalDate date;
 
     @Column(nullable = false,columnDefinition = "INTEGER DEFAULT 0")
     private Integer bookCount;

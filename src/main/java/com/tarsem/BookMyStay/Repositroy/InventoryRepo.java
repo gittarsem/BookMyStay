@@ -32,4 +32,6 @@ public interface InventoryRepo extends JpaRepository<InventoryEntity,Long> {
             @Param("endDate")LocalDate endDate,
             @Param("surgeFactor")BigDecimal surgeFactor,
             @Param("closed")Boolean closed);
+
+    void deleteByRoom(RoomEntity room);
 }
