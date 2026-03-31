@@ -1,6 +1,6 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
-import com.tarsem.BookMyStay.Entity.HotelPriceDTO;
+import com.tarsem.BookMyStay.dto.HotelPriceDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.dto.HotelSearchRequest;
 import com.tarsem.BookMyStay.dto.InventoryDTO;
@@ -15,7 +15,7 @@ public interface InventoryService {
 
     @Nullable String updateInventory(Long roomId, InventoryUpdateRequest inventoryUpdateRequest);
 
-    void initializeRoomforAYear(RoomEntity room);
+    void initializeRoom(RoomEntity room);
 
     void deleteAllInventories(RoomEntity room);
 

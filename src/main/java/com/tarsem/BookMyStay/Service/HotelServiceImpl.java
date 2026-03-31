@@ -125,7 +125,7 @@ public class HotelServiceImpl implements HotelService {
             throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
         }
         for(RoomEntity room: hotel.getRooms()){
-            inventoryService.initializeRoomforAYear(room);
+            inventoryService.initializeRoom(room);
         }
         hotel.setActive(true);
         return "Hotel is now Active";

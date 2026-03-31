@@ -1,5 +1,6 @@
-package com.tarsem.BookMyStay.Entity;
+package com.tarsem.BookMyStay.dto;
 
+import com.tarsem.BookMyStay.Entity.HotelEntity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

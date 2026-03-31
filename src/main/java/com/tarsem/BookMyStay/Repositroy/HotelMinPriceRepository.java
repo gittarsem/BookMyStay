@@ -2,7 +2,7 @@ package com.tarsem.BookMyStay.Repositroy;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.HotelMinPriceEntity;
-import com.tarsem.BookMyStay.Entity.HotelPriceDTO;
+import com.tarsem.BookMyStay.dto.HotelPriceDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,13 +16,13 @@ import java.util.Optional;
 public interface HotelMinPriceRepository  extends JpaRepository<HotelMinPriceEntity, Long> {
 
     @Query("""
-            SELECT com.tarsem.BookMyStay.Entity.HotelPriceDTO(i.hotel, AVG(i.price))
-            FROM HotelMinPriceEntity i
-            WHERE i.hotel.city = :city
-                AND i.date BETWEEN :startDate AND :endDate
-                AND i.hotel.active = true
-           GROUP BY i.hotel
-           """)
+        SELECT new com.tarsem.BookMyStay.dto.HotelPriceDTO(i.hotel, AVG(i.price))
+        FROM HotelMinPriceEntity i
+        WHERE i.hotel.hotelContactInfo.location = :city
+        AND i.date BETWEEN :startDate AND :endDate
+        AND i.hotel.active = true
+        GROUP BY i.hotel
+    """)
     Page<HotelPriceDTO> findHotelsWithAvailableInventory(
             @Param("city") String city,
             @Param("startDate") LocalDate startDate,
