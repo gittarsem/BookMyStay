@@ -1,9 +1,12 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
+import com.tarsem.BookMyStay.Entity.HotelPriceDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
+import com.tarsem.BookMyStay.dto.HotelSearchRequest;
 import com.tarsem.BookMyStay.dto.InventoryDTO;
 import com.tarsem.BookMyStay.dto.InventoryUpdateRequest;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -15,4 +18,6 @@ public interface InventoryService {
     void initializeRoomforAYear(RoomEntity room);
 
     void deleteAllInventories(RoomEntity room);
+
+    Page<HotelPriceDTO> searchHotels(HotelSearchRequest hotelSearchRequest);
 }

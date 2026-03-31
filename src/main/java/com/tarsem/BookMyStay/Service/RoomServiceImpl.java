@@ -1,21 +1,28 @@
 package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
+import com.tarsem.BookMyStay.Entity.HotelPriceDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
+import com.tarsem.BookMyStay.Repositroy.HotelMinPriceRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepo;
 import com.tarsem.BookMyStay.Repositroy.RoomRepo;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.Service.Interfaces.RoomService;
+import com.tarsem.BookMyStay.dto.HotelSearchRequest;
 import com.tarsem.BookMyStay.dto.RoomDTO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
 
@@ -34,6 +41,8 @@ public class RoomServiceImpl implements RoomService {
     private InventoryService inventoryService;
 
     private final ModelMapper modelMapper;
+
+
 
     @Override
     public RoomDTO addNewRoom(RoomDTO roomDTO, Long hotelId) {
@@ -92,6 +101,7 @@ public class RoomServiceImpl implements RoomService {
         roomRepo.save(room);
         return modelMapper.map(room,RoomDTO.class);
     }
+
 
     @Override
     @Transactional
