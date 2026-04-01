@@ -48,7 +48,7 @@ public class InventoryServiceImpl implements InventoryService {
            inventoryRepo.initializeRoom(
                    room.getId(),
                    room.getHotel().getId(),
-                   room.getHotel().getHotelContactInfo().getLocation(),
+                   room.getHotel().getHotelContactInfo().getCity(),
                    date,
                    0,
                    0,
@@ -65,7 +65,7 @@ public class InventoryServiceImpl implements InventoryService {
     public void scheduledInventoryJob() {
         List<RoomEntity> rooms = roomRepo.findAll();
         for (RoomEntity room : rooms) {
-            initializeRoom(room);
+            if(room.getHotel().getActive()) initializeRoom(room);
         }
     }
 

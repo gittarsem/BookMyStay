@@ -9,13 +9,16 @@ import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelRepo;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
+import com.tarsem.BookMyStay.dto.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.HotelResponseDTO;
+import com.tarsem.BookMyStay.dto.RoomDTO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -129,5 +132,21 @@ public class HotelServiceImpl implements HotelService {
         }
         hotel.setActive(true);
         return "Hotel is now Active";
+    }
+
+    @Override
+    @Cacheable(value = "hotels", key = "#hotelId")
+    public HotelInfoDTO findHotelById(Long hotelId) {
+        HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
+                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
+        );
+        List<RoomDTO> roomsList=hotel.getRooms()
+                .stream()
+                .map(
+                        (el)->modelMapper.map(el,RoomDTO.class)
+
+                )
+                .toList();
+        return new HotelInfoDTO(modelMapper.map(hotel,HotelResponseDTO.class),roomsList);
     }
 }

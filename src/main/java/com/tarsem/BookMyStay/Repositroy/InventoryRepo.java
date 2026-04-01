@@ -3,7 +3,6 @@ package com.tarsem.BookMyStay.Repositroy;
 import com.tarsem.BookMyStay.Entity.InventoryEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.dto.InventoryDTO;
-import org.jspecify.annotations.Nullable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -35,8 +34,6 @@ public interface InventoryRepo extends JpaRepository<InventoryEntity,Long> {
             @Param("closed")Boolean closed);
 
     void deleteByRoom(RoomEntity room);
-
-    boolean existsByRoomAndDate(RoomEntity room, LocalDate today);
 
     @Modifying
     @Transactional

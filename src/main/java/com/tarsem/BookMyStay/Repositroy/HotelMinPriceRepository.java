@@ -18,7 +18,7 @@ public interface HotelMinPriceRepository  extends JpaRepository<HotelMinPriceEnt
     @Query("""
         SELECT new com.tarsem.BookMyStay.dto.HotelPriceDTO(i.hotel, AVG(i.price))
         FROM HotelMinPriceEntity i
-        WHERE i.hotel.hotelContactInfo.location = :city
+        WHERE i.hotel.hotelContactInfo.city = :city
         AND i.date BETWEEN :startDate AND :endDate
         AND i.hotel.active = true
         GROUP BY i.hotel

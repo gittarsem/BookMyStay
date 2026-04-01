@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
+import com.tarsem.BookMyStay.dto.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.HotelResponseDTO;
 import org.jspecify.annotations.Nullable;
@@ -18,4 +19,6 @@ public interface HotelService {
     List<HotelResponseDTO> getAllHotel();
 
     String activateHotelById(Long hotelId);
+
+    HotelInfoDTO findHotelById(Long hotelId);
 }
