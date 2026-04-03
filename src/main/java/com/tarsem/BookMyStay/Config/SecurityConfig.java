@@ -35,7 +35,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) {
-        http.csrf(AbstractHttpConfigurer::disable)
+        http
+                .cors(cors->{})
+                .csrf(AbstractHttpConfigurer::disable)
                 .csrf(csrf -> csrf.disable()) // (for testing)
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/auth/**")

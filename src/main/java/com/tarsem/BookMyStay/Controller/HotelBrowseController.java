@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
+import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.dto.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.HotelPriceDTO;
 import com.tarsem.BookMyStay.dto.HotelSearchRequest;
@@ -23,6 +24,9 @@ public class HotelBrowseController {
 
     @Autowired
     private HotelService hotelService;
+
+    @Autowired
+    private InventoryService inventoryService;
 
     @GetMapping("/{hotelId}/info")
     public ResponseEntity<HotelInfoDTO> getHotelInfo(@PathVariable Long hotelId){
