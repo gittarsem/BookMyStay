@@ -17,7 +17,7 @@ public class SecurityCorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
-                "http://localhost:3030"
+                "http://localhost:3003"
                 //"http://bookMystay.com"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));

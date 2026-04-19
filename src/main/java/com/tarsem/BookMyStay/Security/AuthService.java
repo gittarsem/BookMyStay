@@ -4,7 +4,7 @@ import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Entity.UserPrincipal;
 import com.tarsem.BookMyStay.Enums.Role;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
-import com.tarsem.BookMyStay.Repositroy.UserRepo;
+import com.tarsem.BookMyStay.Repositroy.UserRepository;
 import com.tarsem.BookMyStay.dto.LoginRequestDTO;
 import com.tarsem.BookMyStay.dto.SignUpRequestDTO;
 import com.tarsem.BookMyStay.dto.UserDTO;
@@ -23,7 +23,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class AuthService {
     @Autowired
-    private UserRepo userRepo;
+    private UserRepository userRepository;
 
     private final ModelMapper modelMapper;
     private PasswordEncoder passwordEncoder;
@@ -34,14 +34,14 @@ public class AuthService {
     private JwtService jwtService;
 
     public UserDTO signup(SignUpRequestDTO signUpRequestDTO) {
-        UserEntity user=userRepo.findByEmail(signUpRequestDTO.getEmail()).orElse(null);
+        UserEntity user= userRepository.findByEmail(signUpRequestDTO.getEmail()).orElse(null);
         if(user!=null){
             throw new RuntimeException("User with same email Id exist");
         }
         UserEntity newUser=modelMapper.map(signUpRequestDTO,UserEntity.class);
         newUser.setRole(Set.of(Role.GUEST));
         newUser.setPassword(passwordEncoder.encode(signUpRequestDTO.getPassword()));
-        userRepo.save(newUser);
+        userRepository.save(newUser);
 
         return modelMapper.map(newUser,UserDTO.class);
     }
@@ -61,7 +61,7 @@ public class AuthService {
 
     public String refreshToken(String refreshToken) {
         String email=jwtService.getUserEmailFromToken(refreshToken);
-        UserEntity user = userRepo.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found with id: "+email));
+        UserEntity user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found with id: "+email));
         return jwtService.generateAccessToken(user.getEmail());
     }
 }

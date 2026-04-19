@@ -4,7 +4,7 @@ package com.tarsem.BookMyStay.Security;
 
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Entity.UserPrincipal;
-import com.tarsem.BookMyStay.Repositroy.UserRepo;
+import com.tarsem.BookMyStay.Repositroy.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,11 +15,11 @@ import org.springframework.stereotype.Service;
 public class MyUserDetailsService implements UserDetailsService {
 
     @Autowired
-    private UserRepo userRepo;
+    private UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserEntity user =userRepo.findByEmail(email)
+        UserEntity user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new RuntimeException("User not found: " + email));
 
