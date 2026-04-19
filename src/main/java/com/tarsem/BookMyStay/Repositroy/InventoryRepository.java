@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
-public interface InventoryRepo extends JpaRepository<InventoryEntity,Long> {
+public interface InventoryRepository extends JpaRepository<InventoryEntity,Long> {
     List<InventoryDTO> findByRoomOrderByDate(RoomEntity room);
 
     @Modifying
