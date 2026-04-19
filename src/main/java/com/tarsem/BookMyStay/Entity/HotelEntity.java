@@ -29,6 +29,9 @@ public class HotelEntity {
     @Embedded
     private HotelContactInfo hotelContactInfo;
 
+    @Column(name = "location")
+    private String city;
+
     @Column(nullable = false,precision = 10,scale = 2)
     private BigDecimal ratings;
 

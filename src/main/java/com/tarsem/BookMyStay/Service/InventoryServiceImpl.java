@@ -1,29 +1,30 @@
 package com.tarsem.BookMyStay.Service;
 
-import com.tarsem.BookMyStay.dto.HotelPriceDTO;
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.SortOrder;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
+import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.tarsem.BookMyStay.document.HotelDocument;
+import com.tarsem.BookMyStay.dto.HotelSearchResponseDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.HotelMinPriceRepository;
-import com.tarsem.BookMyStay.Repositroy.InventoryRepo;
-import com.tarsem.BookMyStay.Repositroy.RoomRepo;
+import com.tarsem.BookMyStay.Repositroy.InventoryRepository;
+import com.tarsem.BookMyStay.Repositroy.RoomRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
-import com.tarsem.BookMyStay.dto.HotelSearchRequest;
 import com.tarsem.BookMyStay.dto.InventoryDTO;
 import com.tarsem.BookMyStay.dto.InventoryUpdateRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
@@ -33,11 +34,12 @@ import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
 @AllArgsConstructor
 public class InventoryServiceImpl implements InventoryService {
 
-    private final InventoryRepo inventoryRepo;
-    private final RoomRepo roomRepo;
+    private final InventoryRepository inventoryRepository;
+    private final RoomRepository roomRepo;
     private final ModelMapper modelMapper;
     private final HotelMinPriceRepository hotelMinPriceRepository;
     private static final int DAYS_AHEAD=30;
+    private ElasticsearchClient elasticsearch;
 
     @Override
     @Transactional
@@ -45,10 +47,10 @@ public class InventoryServiceImpl implements InventoryService {
         LocalDate today=LocalDate.now();
         LocalDate endDate=today.plusDays(DAYS_AHEAD);
         for(LocalDate date=today;!date.isAfter(endDate); date=date.plusDays(1)){
-           inventoryRepo.initializeRoom(
+           inventoryRepository.initializeRoom(
                    room.getId(),
                    room.getHotel().getId(),
-                   room.getHotel().getHotelContactInfo().getCity(),
+                   room.getHotel().getCity(),
                    date,
                    0,
                    0,
@@ -72,22 +74,90 @@ public class InventoryServiceImpl implements InventoryService {
     @Override
     public void deleteAllInventories(RoomEntity room){
         log.info("Deleting the inventories of room with id: {}", room.getId());
-        inventoryRepo.deleteByRoom(room);
+        inventoryRepository.deleteByRoom(room);
     }
 
     @Override
-    public Page<HotelPriceDTO> searchHotels(HotelSearchRequest hotelSearchRequest) {
-        log.info("Searching hotels for {} city, from {} to {}", hotelSearchRequest.getCity(), hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate());
-        Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
-        long dateCount =
-                ChronoUnit.DAYS.between(hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate()) + 1;
+    public HotelSearchResponseDTO searchHotels(String keyword,
+                                               String city,
+                                               Double maxPrice,
+                                               Double minPrice,
+                                               Double ratings,
+                                               String sortField,
+                                               String sortOrder,
+                                               int page,
+                                               int size) throws IOException {
+        BoolQuery.Builder builder=new BoolQuery.Builder();
 
-        Page<HotelPriceDTO> hotelPage = hotelMinPriceRepository.findHotelsWithAvailableInventory(hotelSearchRequest.getCity(),
-                hotelSearchRequest.getStartDate(), hotelSearchRequest.getEndDate(), hotelSearchRequest.getRoomsCount(),
-                dateCount, pageable);
+        if(keyword!=null && !keyword.isEmpty()){
+            builder.must(b->b
+                    .match(mm->mm
+                            .field("name")
+                            .query(keyword)
+                    )
+            );
 
-        return hotelPage.map((element) -> modelMapper.map(element, HotelPriceDTO.class));
+        }
+
+        if(city!=null && !city.isEmpty()){
+            builder.filter(b->b
+                    .term(m->m
+                            .value(city.toLowerCase())
+                            .field("city")
+                    )
+
+            );
+        }
+
+        if(minPrice!=null && maxPrice!=null){
+            builder.filter(f->f
+                    .range(r->r
+                            .number(n->{
+                                        if(minPrice!=null) n.gte(minPrice);
+                                        if(maxPrice!=null) n.lte(maxPrice);
+
+                                        return n;
+                                    }
+
+                            )
+                    )
+            );
+        }
+
+        if(ratings!=null){
+            builder.filter(f->f
+                    .range(r->r
+                            .number(n->{
+                                return n.gte(ratings);
+                            })
+                    )
+            );
+        }
+
+        BoolQuery boolQuery =builder.build();
+        SearchResponse<HotelDocument> response =elasticsearch.search(s->s
+                .index("hotels")
+                .query(q->q.bool(boolQuery))
+                .from(page*size)
+                .size(size)
+                .sort(so->so
+                        .field(f->f
+                                .field(sortField.equals("name")?"name.keyword":sortField)
+                                .order(sortOrder.equalsIgnoreCase("asc")? SortOrder.Asc:SortOrder.Desc)
+                        )
+
+                ),
+                HotelDocument.class
+        );
+
+        List<HotelDocument> hotelDocumentList=response.hits().hits().stream()
+                .map(it->it.source())
+                .toList();
+        long total=response.hits().total().value();
+
+        return new HotelSearchResponseDTO(hotelDocumentList,total,page,size);
     }
+
 
     @Override
     public List<InventoryDTO> getAllInventoryByRoom(Long roomId) {
@@ -97,7 +167,7 @@ public class InventoryServiceImpl implements InventoryService {
         );
 
         if(verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
-        return inventoryRepo.findByRoomOrderByDate(room)
+        return inventoryRepository.findByRoomOrderByDate(room)
                 .stream()
                 .map(
                         (element)->modelMapper.map(element,InventoryDTO.class)
@@ -116,7 +186,7 @@ public class InventoryServiceImpl implements InventoryService {
 
         if(verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
 
-        inventoryRepo.updateInventory(roomId,inventoryUpdateRequest.getStartDate(),
+        inventoryRepository.updateInventory(roomId,inventoryUpdateRequest.getStartDate(),
                 inventoryUpdateRequest.getEndDate(),inventoryUpdateRequest.getSurgeFactor(),
                 inventoryUpdateRequest.getClosed());
         return "Updated Room with id: " + roomId;

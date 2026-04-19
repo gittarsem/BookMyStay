@@ -3,18 +3,15 @@ package com.tarsem.BookMyStay.Controller;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.dto.HotelInfoDTO;
-import com.tarsem.BookMyStay.dto.HotelPriceDTO;
-import com.tarsem.BookMyStay.dto.HotelSearchRequest;
+import com.tarsem.BookMyStay.dto.HotelSearchResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/hotels")
@@ -35,9 +32,18 @@ public class HotelBrowseController {
 
     @GetMapping("/search")
     @Operation(summary = "Search for hotels", description = "Filter hotels based on location, price, availability, etc.")
-    public ResponseEntity<Page<HotelPriceDTO>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest) {
-        Page<HotelPriceDTO> page = inventoryService.searchHotels(hotelSearchRequest);
-        return ResponseEntity.ok(page);
+    public ResponseEntity<HotelSearchResponseDTO> searchHotels(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Double minPrice,
+            @RequestParam(required = false) Double maxPrice,
+            @RequestParam(required = false) Double ratings,
+            @RequestParam(defaultValue = "price") String sortField,
+            @RequestParam(defaultValue = "asc") String sortOrder,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) throws IOException {
+        return ResponseEntity.ok(inventoryService.searchHotels(keyword,city,maxPrice,minPrice,ratings,sortField,sortOrder,page,size));
     }
 
 }

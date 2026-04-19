@@ -3,12 +3,13 @@ package com.tarsem.BookMyStay.Service;
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
-import com.tarsem.BookMyStay.Entity.UserPrincipal;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
-import com.tarsem.BookMyStay.Repositroy.HotelRepo;
+import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
+import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
+import com.tarsem.BookMyStay.document.HotelDocument;
 import com.tarsem.BookMyStay.dto.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.HotelResponseDTO;
@@ -19,28 +20,28 @@ import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
+import static com.tarsem.BookMyStay.Utils.AppUtils.mapToDocument;
 
 @Service
 @Slf4j
 @AllArgsConstructor
 public class HotelServiceImpl implements HotelService {
     @Autowired
-    private HotelRepo hotelRepo;
+    private HotelRepository hotelRepository;
 
     @Autowired
     private InventoryService inventoryService;
 
     private final ModelMapper modelMapper;
 
-
+    @Autowired
+    private HotelElasticRepository elasticRepository;
 
     @Override
     public HotelResponseDTO createHotel(HotelRequestDTO hotelRequestDTO){
@@ -48,7 +49,8 @@ public class HotelServiceImpl implements HotelService {
         UserEntity user=giveMeCurrentUser();
         hotel.setOwner(user);
         hotel.setActive(false);
-        hotelRepo.save(hotel);
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(hotel));
         HotelResponseDTO newHotel=modelMapper.map(hotel,HotelResponseDTO.class);
         log.info("Saved hotel with id {}", newHotel.getId());
         return newHotel;
@@ -57,7 +59,7 @@ public class HotelServiceImpl implements HotelService {
     @Override
     public HotelResponseDTO getHotel(Long hotelId) {
         log.info("Getting the hotel with ID: {}",hotelId);
-        HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
+        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
                 ()->new ResourceNotFoundException("Hotel with this id not exists")
         );
         UserEntity user=giveMeCurrentUser();
@@ -74,7 +76,7 @@ public class HotelServiceImpl implements HotelService {
         log.info("Updating the hotel with ID: {}", id);
 
         UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel=hotelRepo.findById(id).orElseThrow(
+        HotelEntity hotel= hotelRepository.findById(id).orElseThrow(
                 ()-> new ResourceNotFoundException("Hotel does not exist")
         );
         if(!user.equals(hotel.getOwner())){
@@ -82,7 +84,8 @@ public class HotelServiceImpl implements HotelService {
         }
         modelMapper.map(hotelRequestDTO,hotel);
         hotel.setId(id);
-        hotelRepo.save(hotel);
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(hotel));
         return modelMapper.map(hotel,HotelResponseDTO.class);
 
     }
@@ -93,20 +96,21 @@ public class HotelServiceImpl implements HotelService {
         log.info("Deleting the hotel with ID: {}", hotelId);
 
         UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
+        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
                         ()-> new ResourceNotFoundException("Hotel does not exist")
                 );
         if(!user.equals(hotel.getOwner())){
             throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
         }
-        hotelRepo.deleteById(hotelId);
+        hotelRepository.deleteById(hotelId);
+        elasticRepository.deleteById(hotelId.toString());
         return "Deleted Successfully";
     }
 
     @Override
     public List<HotelResponseDTO> getAllHotel() {
         UserEntity user=giveMeCurrentUser();
-        List<HotelEntity> hotels=hotelRepo.findByOwner(user);
+        List<HotelEntity> hotels= hotelRepository.findByOwner(user);
         log.info("Getting all hotels for the admin user with ID: {}", user.getId());
         return hotels
                 .stream()
@@ -121,7 +125,7 @@ public class HotelServiceImpl implements HotelService {
     public String activateHotelById(Long hotelId) {
         log.info("Activating hotel with ID: {}", hotelId);
         UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
+        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
                 ()->new ResourceNotFoundException("Hotel does not exist")
         );
         if(!user.equals(hotel.getOwner())){
@@ -137,7 +141,7 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Cacheable(value = "hotels", key = "#hotelId")
     public HotelInfoDTO findHotelById(Long hotelId) {
-        HotelEntity hotel=hotelRepo.findById(hotelId).orElseThrow(
+        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
                 ()-> new ResourceNotFoundException("Hotel with this id does not exist")
         );
         List<RoomDTO> roomsList=hotel.getRooms()
