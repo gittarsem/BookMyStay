@@ -33,7 +33,7 @@ public class HotelController {
     }
 
     @GetMapping("/{hotelId}")
-    @Operation(summary = "Update hotel details", description = "Modify hotel information")
+    @Operation(summary = "Get hotel details", description = "Get hotel information")
     public ResponseEntity<HotelResponseDTO> getHotel(@PathVariable Long hotelId){
         HotelResponseDTO hotel=hotelService.getHotel(hotelId);
         return new ResponseEntity<>(hotel,HttpStatus.FOUND);
@@ -54,7 +54,7 @@ public class HotelController {
 
 
     @GetMapping
-    @Operation(summary = "Get hotel by ID", description = "Fetch details of a specific hotel")
+    @Operation(summary = "Get all hotels", description = "Fetch all hotels")
     public ResponseEntity<List<HotelResponseDTO>> getAllHotels(){
         return ResponseEntity.ok(hotelService.getAllHotel());
     }

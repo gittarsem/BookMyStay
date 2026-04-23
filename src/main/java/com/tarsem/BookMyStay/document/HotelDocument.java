@@ -33,4 +33,7 @@ public class HotelDocument {
 
     @Field(type=FieldType.Double)
     private BigDecimal ratings;
+
+    @Field(type = FieldType.Boolean)
+    private Boolean active;
 }

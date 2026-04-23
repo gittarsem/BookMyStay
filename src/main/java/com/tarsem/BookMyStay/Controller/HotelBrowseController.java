@@ -15,7 +15,6 @@ import java.io.IOException;
 
 @RestController
 @RequestMapping("/hotels")
-@SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Hotel Browse", description = "Browse and search for hotels")
 public class HotelBrowseController {
 
@@ -43,7 +42,7 @@ public class HotelBrowseController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) throws IOException {
-        return ResponseEntity.ok(inventoryService.searchHotels(keyword,city,maxPrice,minPrice,ratings,sortField,sortOrder,page,size));
+        return ResponseEntity.ok(inventoryService.searchHotels(keyword,city,minPrice,maxPrice,ratings,sortField,sortOrder,page,size));
     }
 
 }

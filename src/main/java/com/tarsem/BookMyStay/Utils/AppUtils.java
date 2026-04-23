@@ -1,11 +1,14 @@
 package com.tarsem.BookMyStay.Utils;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
+import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Entity.UserPrincipal;
-import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.document.HotelDocument;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 public class AppUtils
 {
@@ -23,12 +26,24 @@ public class AppUtils
         document.setId(hotel.getId().toString());
         document.setName(hotel.getName());
         document.setCity(hotel.getCity());
-        document.setPrice(hotel.getRooms().stream()
+        document.setPrice(getMinPriceRoom(hotel));
+
+        document.setRatings(
+                hotel.getRatings() != null ? hotel.getRatings() : BigDecimal.ZERO
+        );
+
+        document.setActive(hotel.getActive());
+        return document;
+    }
+
+    public static Double getMinPriceRoom(HotelEntity hotel){
+        List<RoomEntity> rooms=hotel.getRooms();
+        if (rooms == null || rooms.isEmpty()) return 0.0;
+        return rooms.stream()
                 .map(it->it.getPrice().doubleValue())
                 .min(Double::compareTo)
-                .orElse(0.0)
-        );
-        document.setRatings(hotel.getRatings());
-        return document;
+                .orElse(0.0);
+
+
     }
 }

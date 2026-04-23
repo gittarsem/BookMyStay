@@ -20,22 +20,20 @@ public class RedisConfig {
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory factory){
 
+        RedisSerializer<Object> serializer = RedisSerializer.json();
+
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))
                 .serializeValuesWith(
                         RedisSerializationContext.SerializationPair
-                                .fromSerializer(RedisSerializer.json())
+                                .fromSerializer(serializer)
                 )
                 .disableCachingNullValues();
 
-        Map<String,RedisCacheConfiguration> configurationMap=new HashMap<>();
-        configurationMap.put("hotels",RedisCacheConfiguration.defaultCacheConfig()
-                .entryTtl(Duration.ofMinutes(10))
-                .serializeValuesWith(
-                        RedisSerializationContext.SerializationPair
-                                .fromSerializer(RedisSerializer.json())
-                )
-        );
+        Map<String, RedisCacheConfiguration> configurationMap = new HashMap<>();
+        configurationMap.put("hotels", config);
+        configurationMap.put("hotel_search", config);
+        configurationMap.put("user_search", config);
 
         return RedisCacheManager.builder(factory)
                 .cacheDefaults(config)

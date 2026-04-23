@@ -25,7 +25,7 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getAllInventoryByRoom(roomId));
     }
 
-    @PatchMapping("/room/roomId")
+    @PatchMapping("/room/{roomId}")
     public ResponseEntity<String> updateInventory(@PathVariable Long roomId,
                                                   @RequestBody InventoryUpdateRequest inventoryUpdateRequest){
         return ResponseEntity.ok(inventoryService.updateInventory(roomId,inventoryUpdateRequest));

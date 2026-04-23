@@ -35,6 +35,9 @@ public class HotelEntity {
     @Column(nullable = false,precision = 10,scale = 2)
     private BigDecimal ratings;
 
+    @Column(name="min_price")
+    private Double minPrice;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime created_at;

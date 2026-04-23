@@ -7,6 +7,7 @@ import lombok.Data;
 public class HotelResponseDTO {
     private Long id;
     private String name;
+    private String city;
     private HotelContactInfo hotelContactInfo;
     private boolean active;
 }

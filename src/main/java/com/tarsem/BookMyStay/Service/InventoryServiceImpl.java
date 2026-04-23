@@ -17,6 +17,7 @@ import com.tarsem.BookMyStay.dto.InventoryUpdateRequest;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ModelMapper modelMapper;
     private final HotelMinPriceRepository hotelMinPriceRepository;
     private static final int DAYS_AHEAD=30;
-    private ElasticsearchClient elasticsearch;
+    private final ElasticsearchClient elasticsearch;
 
     @Override
     @Transactional
@@ -78,10 +79,13 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Cacheable(value = "hotel_search",
+            key = "#keyword + '-' + #city + '-' + #minPrice + '-' + #maxPrice + '-' + #ratings + '-' + #sortField + '-' + #sortOrder + '-' + #page + '-' + #size"
+    )
     public HotelSearchResponseDTO searchHotels(String keyword,
                                                String city,
-                                               Double maxPrice,
                                                Double minPrice,
+                                               Double maxPrice,
                                                Double ratings,
                                                String sortField,
                                                String sortOrder,
@@ -99,6 +103,13 @@ public class InventoryServiceImpl implements InventoryService {
 
         }
 
+        builder.filter(f -> f
+                .term(t -> t
+                        .field("active")
+                        .value(true)
+                )
+        );
+
         if(city!=null && !city.isEmpty()){
             builder.filter(b->b
                     .term(m->m
@@ -112,12 +123,16 @@ public class InventoryServiceImpl implements InventoryService {
         if(minPrice!=null && maxPrice!=null){
             builder.filter(f->f
                     .range(r->r
-                            .number(n->{
-                                        if(minPrice!=null) n.gte(minPrice);
-                                        if(maxPrice!=null) n.lte(maxPrice);
 
-                                        return n;
-                                    }
+                            .number(n->{
+
+                                n.field("price");
+                                if(minPrice!=null) n.gte(minPrice);
+                                if(maxPrice!=null) n.lte(maxPrice);
+
+                                return n;
+                            }
+
 
                             )
                     )
@@ -128,6 +143,7 @@ public class InventoryServiceImpl implements InventoryService {
             builder.filter(f->f
                     .range(r->r
                             .number(n->{
+                                n.field("ratings");
                                 return n.gte(ratings);
                             })
                     )
@@ -166,7 +182,7 @@ public class InventoryServiceImpl implements InventoryService {
                 ()-> new ResourceNotFoundException("Room with id "+roomId+" does not exist")
         );
 
-        if(verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
+        if(!verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
         return inventoryRepository.findByRoomOrderByDate(room)
                 .stream()
                 .map(
@@ -184,7 +200,7 @@ public class InventoryServiceImpl implements InventoryService {
                 ()-> new ResourceNotFoundException("Room with id "+roomId+" does not exist")
         );
 
-        if(verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
+        if(!verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
 
         inventoryRepository.updateInventory(roomId,inventoryUpdateRequest.getStartDate(),
                 inventoryUpdateRequest.getEndDate(),inventoryUpdateRequest.getSurgeFactor(),

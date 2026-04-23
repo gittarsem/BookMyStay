@@ -9,7 +9,6 @@ import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
-import com.tarsem.BookMyStay.document.HotelDocument;
 import com.tarsem.BookMyStay.dto.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.HotelResponseDTO;
@@ -18,32 +17,31 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
-import static com.tarsem.BookMyStay.Utils.AppUtils.mapToDocument;
+import static com.tarsem.BookMyStay.Utils.AppUtils.*;
 
 @Service
 @Slf4j
 @AllArgsConstructor
 public class HotelServiceImpl implements HotelService {
-    @Autowired
-    private HotelRepository hotelRepository;
 
-    @Autowired
-    private InventoryService inventoryService;
-
-    private final ModelMapper modelMapper;
-
-    @Autowired
-    private HotelElasticRepository elasticRepository;
+     private final HotelRepository hotelRepository;
+     private final InventoryService inventoryService;
+     private final ModelMapper modelMapper;
+     private final HotelElasticRepository elasticRepository;
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "hotel_search", allEntries = true),
+            @CacheEvict(value = "user_hotels", allEntries = true)
+    })
     public HotelResponseDTO createHotel(HotelRequestDTO hotelRequestDTO){
         HotelEntity hotel=modelMapper.map(hotelRequestDTO,HotelEntity.class);
         UserEntity user=giveMeCurrentUser();
@@ -57,6 +55,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Cacheable(value = "hotels", key = "#hotelId")
     public HotelResponseDTO getHotel(Long hotelId) {
         log.info("Getting the hotel with ID: {}",hotelId);
         HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
@@ -72,6 +71,10 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "hotels", key = "#id"),
+            @CacheEvict(value = "hotel_search", allEntries = true)
+    })
     public HotelResponseDTO updateHotelById(HotelRequestDTO hotelRequestDTO, Long id) {
         log.info("Updating the hotel with ID: {}", id);
 
@@ -92,6 +95,11 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "hotels", key = "#hotelId"),
+            @CacheEvict(value = "hotel_search", allEntries = true),
+            @CacheEvict(value = "user_hotels", allEntries = true)
+    })
     public @Nullable String deleteHotelById(Long hotelId) {
         log.info("Deleting the hotel with ID: {}", hotelId);
 
@@ -108,6 +116,10 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Cacheable(
+            value = "user_hotels",
+            key = "T(com.tarsem.BookMyStay.Utils.AppUtils).giveMeCurrentUser().id"
+    )
     public List<HotelResponseDTO> getAllHotel() {
         UserEntity user=giveMeCurrentUser();
         List<HotelEntity> hotels= hotelRepository.findByOwner(user);
@@ -122,6 +134,10 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(value = "hotel_search",key="#hotelId"),
+            @CacheEvict(value = "user_hotels", allEntries = true)
+    })
     public String activateHotelById(Long hotelId) {
         log.info("Activating hotel with ID: {}", hotelId);
         UserEntity user=giveMeCurrentUser();
@@ -134,7 +150,11 @@ public class HotelServiceImpl implements HotelService {
         for(RoomEntity room: hotel.getRooms()){
             inventoryService.initializeRoom(room);
         }
+        if(hotel.getActive()) return "Hotel is already active";
         hotel.setActive(true);
+        //hotel.setMinPrice(getMinPriceRoom(hotel));
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(hotel));
         return "Hotel is now Active";
     }
 

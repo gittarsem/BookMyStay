@@ -4,6 +4,7 @@ import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
+import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Repositroy.RoomRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
@@ -17,23 +18,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
+
+import static com.tarsem.BookMyStay.Utils.AppUtils.*;
 
 @Service
 @Slf4j
 @AllArgsConstructor
 public class RoomServiceImpl implements RoomService {
 
-    @Autowired
-    private HotelRepository hotelRepository;
-
-    @Autowired
-    private RoomRepository roomRepo;
-
-    @Autowired
-    private InventoryService inventoryService;
-
+    private final HotelRepository hotelRepository;
+    private final RoomRepository roomRepo;
+    private final InventoryService inventoryService;
     private final ModelMapper modelMapper;
+    private final HotelElasticRepository elasticRepository;
 
 
 
@@ -47,6 +44,9 @@ public class RoomServiceImpl implements RoomService {
         RoomEntity room=modelMapper.map(roomDTO,RoomEntity.class);
         room.setHotel(hotel);
         roomRepo.save(room);
+        hotel.setMinPrice(getMinPriceRoom(hotel));
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(room.getHotel()));
         if(hotel.getActive()){
             inventoryService.initializeRoom(room);
         }
@@ -92,6 +92,9 @@ public class RoomServiceImpl implements RoomService {
         modelMapper.map(roomDTO,room);
         room.setId(roomId);
         roomRepo.save(room);
+        hotel.setMinPrice(getMinPriceRoom(hotel));
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(room.getHotel()));
         return modelMapper.map(room,RoomDTO.class);
     }
 
@@ -109,6 +112,9 @@ public class RoomServiceImpl implements RoomService {
         if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
         inventoryService.deleteAllInventories(room);
         roomRepo.deleteById(roomId);
+        hotel.setMinPrice(getMinPriceRoom(hotel));
+        hotelRepository.save(hotel);
+        elasticRepository.save(mapToDocument(hotel));
         return ("Deleted Room with id: "+roomId);
     }
 

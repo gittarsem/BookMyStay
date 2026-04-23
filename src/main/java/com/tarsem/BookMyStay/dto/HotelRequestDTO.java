@@ -8,5 +8,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class HotelRequestDTO {
     private String name;
+    private String city;
     private HotelContactInfo hotelContactInfo;
 }
