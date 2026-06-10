@@ -3,7 +3,9 @@ package com.tarsem.BookMyStay.Repositroy;
 import com.tarsem.BookMyStay.Entity.InventoryEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.dto.InventoryDTO;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,6 +35,7 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
             @Param("surgeFactor")BigDecimal surgeFactor,
             @Param("closed")Boolean closed);
 
+
     void deleteByRoom(RoomEntity room);
 
     @Modifying
@@ -55,5 +58,37 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
             @Param("surgeFactor") BigDecimal surgeFactor,
             @Param("price") BigDecimal price,
             @Param("closed") Boolean closed
+    );
+
+    @Query("""
+            SELECT i FROM InventoryEntity i
+            WHERE
+             i.room.id= :roomId
+             AND i.closed=false
+             AND i.date BETWEEN :checkInDate AND :checkOutDate
+             AND (i.totalCount-i.bookCount-i.reservedCount)>=:roomsCount
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<InventoryEntity> findAndLockAvailableInventory(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate,
+            @Param("roomsCount") Integer roomsCount
+    );
+
+    @Modifying
+    @Query("""
+            UPDATE InventoryEntity i
+            SET i.reservedCount=i.reservedCount+ :numberOfRooms
+            Where i.room.id=:roomId
+            AND i.date BETWEEN :checkInDate AND :checkOutDate
+            And (i.totalCount-i.bookCount-i.reservedCount)>=:numberOfRooms
+            AND i.closed=false
+            """)
+    void initBooking(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate,
+            @Param("numberOfRooms") int numberOfRooms
     );
 }

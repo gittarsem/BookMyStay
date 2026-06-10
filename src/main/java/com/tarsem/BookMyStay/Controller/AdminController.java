@@ -1,5 +1,7 @@
 package com.tarsem.BookMyStay.Controller;
 
+import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.tarsem.BookMyStay.Config.ElasticSearchConfig;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Utils.AppUtils;
@@ -19,6 +21,9 @@ public class AdminController {
     private HotelRepository hotelRepository;
 
     @Autowired
+    private ElasticsearchClient elasticsearchClient;
+
+    @Autowired
     private HotelElasticRepository elasticRepository;
 
     @GetMapping("/reindex")
@@ -34,5 +39,10 @@ public class AdminController {
         elasticRepository.saveAll(docs);
 
         return "Reindex completed: " + docs.size();
+    }
+
+    @GetMapping("/es-test")
+    public String test() throws Exception {
+        return elasticsearchClient.info().clusterName();
     }
 }

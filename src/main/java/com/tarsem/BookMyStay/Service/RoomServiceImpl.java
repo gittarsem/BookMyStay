@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.*;
@@ -110,9 +111,22 @@ public class RoomServiceImpl implements RoomService {
                 () -> new ResourceNotFoundException("Room not found with ID: "+roomId)
         );
         if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
+
+        Double deletedPrice = room.getPrice().doubleValue();
+        Double currentMin = hotel.getMinPrice();
+
         inventoryService.deleteAllInventories(room);
         roomRepo.deleteById(roomId);
-        hotel.setMinPrice(getMinPriceRoom(hotel));
+
+        if (deletedPrice.equals(currentMin)) {
+
+            BigDecimal minPrice = roomRepo.findMinPriceByHotelId(hotelId);
+
+            hotel.setMinPrice(
+                    minPrice != null ? minPrice.doubleValue() : 0.0
+            );
+        }
+
         hotelRepository.save(hotel);
         elasticRepository.save(mapToDocument(hotel));
         return ("Deleted Room with id: "+roomId);
