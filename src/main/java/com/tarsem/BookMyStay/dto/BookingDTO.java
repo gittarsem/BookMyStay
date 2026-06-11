@@ -18,5 +18,5 @@ public class BookingDTO {
     private LocalDateTime updatedAt;
     private BookingStatus bookingStatus;
     private Set<GuestDTO> guests;
-    private BigDecimal amount;
+    private BigDecimal totalPrice;
 }
