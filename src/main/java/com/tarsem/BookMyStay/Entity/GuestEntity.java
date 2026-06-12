@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Entity;
 
+import com.tarsem.BookMyStay.Enums.Gender;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +15,6 @@ public class GuestEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne
     @JoinColumn(name = "user_id")
     private UserEntity user;
@@ -23,5 +23,7 @@ public class GuestEntity {
     private String name;
 
     private Integer age;
+
+    private Gender gender;
 
 }

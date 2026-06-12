@@ -15,7 +15,6 @@ public class PricingService {
     private List<PricingStrategy> pricingStrategyList;
 
     public BigDecimal calculatePrice(InventoryEntity inventory) {
-
         BigDecimal price = inventory.getPrice();
         for (PricingStrategy strategy : pricingStrategyList) {
             price = strategy.calculatePrice(price, inventory);

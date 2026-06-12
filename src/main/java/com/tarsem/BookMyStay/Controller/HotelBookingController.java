@@ -4,14 +4,14 @@ import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.dto.BookingDTO;
 import com.tarsem.BookMyStay.dto.BookingRequestDTO;
+import com.tarsem.BookMyStay.dto.GuestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/bookings")
@@ -25,5 +25,10 @@ public class HotelBookingController {
     @Operation(summary = "Initialize a new booking", tags = {"Booking Flow"})
     public ResponseEntity<BookingDTO> initializeBooking(@RequestBody BookingRequestDTO bookingRequestDTO) throws RoomNotAvailableException{
         return ResponseEntity.ok(bookingService.initializeBooking(bookingRequestDTO));
+    }
+
+    @PostMapping("/{bookingId}/addGuests")
+    public ResponseEntity<BookingDTO> addGuest(@PathVariable Long bookingId, @RequestBody List<GuestDTO> guests){
+        return ResponseEntity.ok(bookingService.addGuests(bookingId,guests));
     }
 }
