@@ -68,4 +68,7 @@ public class BookingEntity {
     @CreationTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private PaymentEntity payment;
 }
