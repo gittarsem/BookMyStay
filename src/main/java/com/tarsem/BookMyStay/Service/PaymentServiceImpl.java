@@ -15,6 +15,7 @@ import com.tarsem.BookMyStay.Repositroy.BookingRepository;
 import com.tarsem.BookMyStay.Repositroy.PaymentRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.PaymentService;
 import com.tarsem.BookMyStay.Utils.RazorPaySignatureUtil;
+import com.tarsem.BookMyStay.Utils.RazorpayWebhookUtil;
 import com.tarsem.BookMyStay.dto.payment.CreateOrderRequest;
 import com.tarsem.BookMyStay.dto.payment.CreateOrderResponse;
 import com.tarsem.BookMyStay.dto.payment.VerifyPaymentRequest;
@@ -39,6 +40,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final RazorpayClient razorpayClient;
     private final BookingRepository bookingRepository;
     private final RazorPaySignatureUtil paySignatureUtil;
+    private final RazorpayWebhookUtil razorpayWebhookUtil;
 
     @Override
     @Transactional
@@ -128,6 +130,51 @@ public class PaymentServiceImpl implements PaymentService {
                 .paymentStatus(payment.getPaymentStatus())
                 .bookingStatus(booking.getStatus())
                 .build();
+    }
+
+    @Override
+    public void handleWebhook(String payload, String signature) throws Exception {
+
+        if(!razorpayWebhookUtil.verifyWebhookSignature(payload,signature)){
+            throw new PaymentException("Invalid Signature");
+        }
+
+        JSONObject object=new JSONObject(payload);
+
+        String event=object.getString("event");
+
+        if("payment.captured".equals(event)){
+            handlePaymentCaptured(object);
+        }
+    }
+
+    private void handlePaymentCaptured(JSONObject object) {
+        JSONObject paymentJson=object
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity");
+
+        String paymentId = paymentJson.getString("id");
+        String orderId = paymentJson.getString("order_id");
+
+        PaymentEntity payment = paymentRepository
+                .findByGatewayOrderId(orderId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Payment not found"));
+
+        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            return;
+        }
+
+        payment.setGatewayPaymentId(paymentId);
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+
+        BookingEntity booking = payment.getBooking();
+        booking.setStatus(BookingStatus.CONFIRMED);
+
+        paymentRepository.save(payment);
+
+
     }
 
     private boolean validateRazorpayPayment(
