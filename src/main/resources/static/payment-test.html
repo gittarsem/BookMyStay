@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BookMyStay · Secure Payment</title>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+        :root {
+          --blue-900: #0f172a;
+          --blue-700: #1d4ed8;
+          --blue-600: #2563eb;
+          --blue-500: #3b82f6;
+          --blue-100: #dbeafe;
+          --blue-50:  #eff6ff;
+          --white:    #ffffff;
+          --slate-500: #64748b;
+          --slate-200: #e2e8f0;
+          --green-600: #16a34a;
+          --green-50: #f0fdf4;
+          --red-600:   #dc2626;
+          --red-50: #fef2f2;
+
+          --radius-lg: 16px;
+          --radius-md: 10px;
+          --shadow-card: 0 20px 45px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+          font-family: "Inter", Arial, sans-serif;
+        }
+
+        body {
+          min-height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background: var(--white);
+          padding: 25px;
+        }
+
+        .card {
+          position: relative;
+          width: 100%;
+          max-width: 440px;
+          background: var(--white);
+          border-radius: var(--radius-lg);
+          padding: 36px;
+          box-shadow: var(--shadow-card);
+          border: 1px solid var(--slate-200);
+          overflow: hidden;
+        }
+
+        .card__header {
+          text-align: center;
+          margin-bottom: 28px;
+        }
+
+        .card__header h2 {
+          color: var(--blue-700);
+          font-size: 22px;
+          letter-spacing: -0.01em;
+        }
+
+        .card__header p {
+          margin-top: 6px;
+          font-size: 13px;
+          color: var(--slate-500);
+        }
+
+        .field {
+          margin-bottom: 20px;
+        }
+
+        label {
+          display: block;
+          font-size: 13px;
+          margin-bottom: 8px;
+          color: var(--blue-900);
+          font-weight: 600;
+          letter-spacing: 0.01em;
+        }
+
+        input {
+          width: 100%;
+          padding: 13px 14px;
+          border: 1.5px solid var(--slate-200);
+          border-radius: var(--radius-md);
+          font-size: 15px;
+          background: var(--blue-50);
+          transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        input::placeholder {
+          color: #94a3b8;
+        }
+
+        input:focus {
+          outline: none;
+          border-color: var(--blue-600);
+          background: var(--white);
+          box-shadow: 0 0 0 4px var(--blue-100);
+        }
+
+        /* Optional auth toggle */
+        .auth-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .auth-toggle {
+          width: 40px;
+          height: 40px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          border: 1.5px solid var(--slate-200);
+          background: var(--blue-50);
+          color: var(--blue-600);
+          font-size: 20px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+          line-height: 1;
+        }
+
+        .auth-toggle:hover {
+          background: var(--blue-100);
+          border-color: var(--blue-500);
+        }
+
+        .auth-toggle.open {
+          transform: rotate(45deg);
+        }
+
+        .auth-row span {
+          font-size: 13px;
+          color: var(--slate-500);
+          font-weight: 500;
+        }
+
+        #jwtField {
+          display: none;
+          margin-bottom: 20px;
+        }
+
+        #jwtField.visible {
+          display: block;
+        }
+
+        button.primary {
+          width: 100%;
+          padding: 15px;
+          border: none;
+          border-radius: var(--radius-md);
+          background: var(--blue-600);
+          color: var(--white);
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          transition: background 0.2s ease, transform 0.1s ease;
+        }
+
+        button.primary:hover:not(:disabled) {
+          background: var(--blue-700);
+        }
+
+        button.primary:active:not(:disabled) {
+          transform: scale(0.99);
+        }
+
+        button.primary:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+        }
+
+        #result {
+          margin-top: 24px;
+          min-height: 60px;
+          border-radius: var(--radius-md);
+          background: var(--blue-50);
+          border: 1px solid var(--blue-100);
+          padding: 18px;
+          white-space: pre-wrap;
+          overflow: auto;
+          font-size: 14px;
+          color: var(--blue-900);
+        }
+
+        .result-fade {
+          animation: fadeInBlock 0.45s ease;
+        }
+
+        @keyframes fadeInBlock {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .loading {
+          color: var(--blue-600);
+          font-weight: 700;
+        }
+
+        .success-tag {
+          color: var(--green-600);
+          font-weight: 700;
+          font-size: 17px;
+        }
+
+        .error-tag {
+          color: var(--red-600);
+          font-weight: 700;
+          font-size: 17px;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 14px;
+          font-size: 13.5px;
+        }
+
+        table td {
+          padding: 9px 6px;
+          border-bottom: 1px solid var(--blue-100);
+          vertical-align: top;
+        }
+
+        table td:first-child {
+          color: var(--slate-500);
+          width: 42%;
+        }
+
+        details {
+          margin-top: 18px;
+        }
+
+        summary {
+          cursor: pointer;
+          color: var(--blue-700);
+          font-weight: 600;
+          font-size: 13.5px;
+        }
+
+        pre {
+          margin-top: 12px;
+          padding: 12px;
+          background: var(--blue-100);
+          border-radius: 8px;
+          overflow: auto;
+          font-size: 12.5px;
+          color: var(--blue-900);
+        }
+
+        /* ---------- Status animation overlay ---------- */
+
+        .status-overlay {
+          display: none;
+          position: absolute;
+          inset: 0;
+          background: rgba(255, 255, 255, 0.98);
+          border-radius: var(--radius-lg);
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          z-index: 20;
+        }
+
+        .status-overlay.active {
+          display: flex;
+        }
+
+        .status-icon-wrap {
+          width: 96px;
+          height: 96px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .status-overlay.play .status-icon-wrap {
+          animation: popIn 0.4s ease;
+        }
+
+        .status-icon-wrap--success {
+          background: var(--green-50);
+        }
+
+        .status-icon-wrap--fail {
+          background: var(--red-50);
+        }
+
+        @keyframes popIn {
+          from { transform: scale(0.6); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
+        }
+
+        .status-icon {
+          width: 56px;
+          height: 56px;
+        }
+
+        .status-icon__circle {
+          fill: none;
+          stroke-width: 3;
+          stroke-linecap: round;
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+        }
+
+        .status-icon__circle--success { stroke: var(--green-600); }
+        .status-icon__circle--fail { stroke: var(--red-600); }
+
+        .status-icon__check {
+          fill: none;
+          stroke: var(--green-600);
+          stroke-width: 4;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+        }
+
+        .status-icon__cross {
+          fill: none;
+          stroke: var(--red-600);
+          stroke-width: 4;
+          stroke-linecap: round;
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+        }
+
+        .status-overlay.play .status-icon__circle {
+          animation: dashDraw 0.5s ease forwards;
+        }
+
+        .status-overlay.play .status-icon__check,
+        .status-overlay.play .status-icon__cross {
+          animation: dashDraw 0.35s 0.45s ease forwards;
+        }
+
+        @keyframes dashDraw {
+          to { stroke-dashoffset: 0; }
+        }
+
+        .status-text {
+          font-size: 17px;
+          font-weight: 700;
+          opacity: 0;
+        }
+
+        .status-overlay.play .status-text {
+          animation: textIn 0.4s 0.55s ease forwards;
+        }
+
+        @keyframes textIn {
+          from { opacity: 0; transform: translateY(4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+
+    <div class="card__header">
+        <h2>🏨 BookMyStay</h2>
+        <p>Complete your booking payment securely</p>
+    </div>
+
+    <div class="field">
+        <label for="bookingId">Booking ID</label>
+        <input id="bookingId" type="number" placeholder="Enter your Booking ID" />
+    </div>
+
+    <div class="auth-row">
+        <button type="button" id="jwtToggle" class="auth-toggle" onclick="toggleJwtField()">+</button>
+        <span>Add authorization token</span>
+    </div>
+
+    <div class="field" id="jwtField">
+        <label for="jwt">Authorization Token</label>
+        <input id="jwt" placeholder="Paste your token" />
+    </div>
+
+    <button class="primary" id="payBtn" onclick="payNow()">Pay Now</button>
+
+    <div id="result">Enter your Booking ID to continue.</div>
+
+    <!-- Status animation overlay -->
+    <div id="statusOverlay" class="status-overlay">
+        <div id="successWrap" class="status-icon-wrap status-icon-wrap--success">
+            <svg class="status-icon" viewBox="0 0 52 52">
+                <circle class="status-icon__circle status-icon__circle--success" cx="26" cy="26" r="23" pathLength="1" />
+                <path class="status-icon__check" d="M14 27 L22.5 35.5 L38 18" pathLength="1" />
+            </svg>
+        </div>
+        <div id="failWrap" class="status-icon-wrap status-icon-wrap--fail">
+            <svg class="status-icon" viewBox="0 0 52 52">
+                <circle class="status-icon__circle status-icon__circle--fail" cx="26" cy="26" r="23" pathLength="1" />
+                <path class="status-icon__cross" d="M17 17 L35 35 M35 17 L17 35" pathLength="1" />
+            </svg>
+        </div>
+        <div id="statusText" class="status-text"></div>
+    </div>
+
+</div>
+
+<script>
+    function toggleJwtField() {
+      const field = document.getElementById("jwtField");
+      const toggle = document.getElementById("jwtToggle");
+      field.classList.toggle("visible");
+      toggle.classList.toggle("open");
+    }
+
+    function showStatusAnimation(type, message) {
+      return new Promise((resolve) => {
+        const overlay = document.getElementById("statusOverlay");
+        const successWrap = document.getElementById("successWrap");
+        const failWrap = document.getElementById("failWrap");
+        const text = document.getElementById("statusText");
+
+        successWrap.style.display = type === "success" ? "flex" : "none";
+        failWrap.style.display = type === "success" ? "none" : "flex";
+
+        text.textContent = message;
+        text.style.color = type === "success" ? "var(--green-600)" : "var(--red-600)";
+
+        overlay.classList.remove("play");
+        overlay.classList.add("active");
+
+        // force reflow so the animation restarts every time
+        void overlay.offsetWidth;
+        overlay.classList.add("play");
+
+        setTimeout(() => {
+          overlay.classList.remove("active", "play");
+          resolve();
+        }, 1500);
+      });
+    }
+
+    function renderResult(html) {
+      const result = document.getElementById("result");
+      result.classList.remove("result-fade");
+      void result.offsetWidth;
+      result.innerHTML = html;
+      result.classList.add("result-fade");
+    }
+
+    async function payNow() {
+      const bookingId = document.getElementById("bookingId").value;
+      const jwt = document.getElementById("jwt").value;
+      const button = document.getElementById("payBtn");
+
+      if (bookingId === "") {
+        alert("Please enter Booking ID");
+        return;
+      }
+
+      button.disabled = true;
+      button.innerText = "Creating Order...";
+      renderResult("<div class='loading'>Creating your order…</div>");
+
+      let headers = {
+        "Content-Type": "application/json"
+      };
+
+      if (jwt.trim() !== "") {
+        headers["Authorization"] = "Bearer " + jwt;
+      }
+
+      try {
+        const orderResponse = await fetch("http://localhost:8080/api/payments/create-order", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({ bookingId: Number(bookingId) })
+        });
+
+        if (!orderResponse.ok) {
+          const errorText = await orderResponse.text();
+          button.disabled = false;
+          button.innerText = "Pay Now";
+          await showStatusAnimation("fail", "Order Creation Failed");
+          renderResult(
+            `<div class="error-tag">❌ Failed to create order</div><br><pre>${errorText}</pre>`
+          );
+          return;
+        }
+
+        const order = await orderResponse.json();
+
+        button.innerText = "Opening Payment...";
+
+        const options = {
+          key: order.keyId,
+          amount: order.amount * 100,
+          currency: order.currency,
+          order_id: order.orderId,
+          name: "BookMyStay",
+          description: "Hotel Booking Payment",
+          image: "https://cdn-icons-png.flaticon.com/512/235/235889.png",
+          prefill: {
+            name: "",
+            email: "",
+            contact: ""
+          },
+          theme: {
+            color: "#2563eb"
+          },
+          modal: {
+            ondismiss: async function () {
+              button.disabled = false;
+              button.innerText = "Pay Now";
+              await showStatusAnimation("fail", "Payment Cancelled");
+              renderResult(`<div class="error-tag">❌ Payment Cancelled</div>`);
+            }
+          },
+          handler: async function (response) {
+            renderResult("<div class='loading'>Verifying payment…</div>");
+
+            try {
+              const verify = await fetch("http://localhost:8080/api/payments/verify", {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature
+                })
+              });
+
+              if (!verify.ok) {
+                const errorText = await verify.text();
+                button.disabled = false;
+                button.innerText = "Retry Payment";
+                await showStatusAnimation("fail", "Verification Failed");
+                renderResult(`
+                  <div class="error-tag">❌ Verification Failed</div>
+                  <br>
+                  HTTP Status: ${verify.status}
+                  <br><br>
+                  <pre>${errorText}</pre>
+                `);
+                return;
+              }
+
+              const verifyResult = await verify.json();
+              button.disabled = false;
+              button.innerText = "Pay Again";
+
+              await showStatusAnimation("success", "Payment Successful");
+
+              renderResult(`
+                <div class="success-tag">✅ Payment Verified Successfully</div>
+                <table>
+                  <tr><td><b>Booking ID</b></td><td>${verifyResult.bookingId}</td></tr>
+                  <tr><td><b>Order ID</b></td><td>${response.razorpay_order_id}</td></tr>
+                  <tr><td><b>Payment ID</b></td><td>${verifyResult.razorpayPaymentId}</td></tr>
+                  <tr><td><b>Payment Status</b></td><td>${verifyResult.paymentStatus}</td></tr>
+                  <tr><td><b>Booking Status</b></td><td>${verifyResult.bookingStatus}</td></tr>
+                  <tr><td><b>Message</b></td><td>${verifyResult.message}</td></tr>
+                </table>
+                <details>
+                  <summary>Complete Response</summary>
+                  <pre>${JSON.stringify(verifyResult, null, 4)}</pre>
+                </details>
+              `);
+            } catch (e) {
+              button.disabled = false;
+              button.innerText = "Retry Payment";
+              await showStatusAnimation("fail", "Something Went Wrong");
+              renderResult(`<div class="error-tag">❌ ${e.message}</div>`);
+            }
+          }
+        };
+
+        const razorpay = new Razorpay(options);
+
+        razorpay.on("payment.failed", async function (response) {
+          button.disabled = false;
+          button.innerText = "Retry Payment";
+          await showStatusAnimation("fail", "Payment Failed");
+          renderResult(`
+            <div class="error-tag">❌ Payment Failed</div>
+            <br>
+            <b>Error Code</b><br>${response.error.code}
+            <br><br>
+            <b>Description</b><br>${response.error.description}
+            <br><br>
+            <b>Order ID</b><br>${response.error.metadata.order_id}
+            <br><br>
+            <b>Payment ID</b><br>${response.error.metadata.payment_id}
+          `);
+        });
+
+        razorpay.open();
+      } catch (e) {
+        console.error(e);
+        button.disabled = false;
+        button.innerText = "Pay Now";
+        await showStatusAnimation("fail", "Something Went Wrong");
+        renderResult(`<div class="error-tag">❌ ${e.message}</div>`);
+      }
+    }
+</script>
+</body>
+</html>

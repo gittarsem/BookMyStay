@@ -38,9 +38,13 @@ public class SecurityConfig {
         http
                 .cors(cors->{})
                 .csrf(AbstractHttpConfigurer::disable)
-                .csrf(csrf -> csrf.disable()) // (for testing)
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/auth/**","/hotels/search/**","/admin/**")
+                        .requestMatchers("/auth/**",
+                                "/hotels/search/**",
+                                "/admin/**",
+                                "/api/payments/**",
+                                "/payment-test.html")
                         .permitAll()
                         .anyRequest().authenticated()
                 )

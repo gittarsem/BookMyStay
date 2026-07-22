@@ -103,8 +103,8 @@ public class PaymentServiceImpl implements PaymentService {
             throw new PaymentException("Order ID mismatch.");
         }
 
-        if(payment.getPaymentStatus()==PaymentStatus.SUCCESS){
-            throw new PaymentException("Payment already verified");
+        if(payment.getPaymentStatus()!=PaymentStatus.SUCCESS){
+            throw new PaymentException("Payment not verified");
         }
 
         if(!paySignatureUtil.verify(request.getOrderId(), request.getPaymentId(), request.getSignature())){
