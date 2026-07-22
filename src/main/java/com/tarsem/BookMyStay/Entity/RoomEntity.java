@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tarsem.BookMyStay.Enums.RoomType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,7 +28,8 @@ public class RoomEntity {
     private HotelEntity hotel;
 
     @Column(nullable = false)
-    private String roomType;
+    @Enumerated(EnumType.STRING)
+    private RoomType roomType;
 
     @Column(nullable = false)
     private int capacity;

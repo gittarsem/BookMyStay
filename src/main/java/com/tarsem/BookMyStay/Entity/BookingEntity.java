@@ -52,6 +52,10 @@ public class BookingEntity {
     @Column(nullable = false)
     private BookingStatus status;
 
+    private Integer adultCount;
+
+    private Integer childCount;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "booking_guest",

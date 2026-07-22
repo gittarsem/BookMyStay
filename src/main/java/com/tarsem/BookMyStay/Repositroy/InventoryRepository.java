@@ -41,23 +41,45 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
     @Modifying
     @Transactional
     @Query(value = """
-            INSERT INTO inventory
-            (room_id,hotel_id,city,date,book_count,reserved_count,total_count,surge_factor,price,closed)
-            VALUES(:roomId,:hotelId,:city,:date,:bookCount,:reservedCount,:totalCount,:surgeFactor,:price,:closed)
-            ON CONFLICT(room_id,date) DO NOTHING
-            """,nativeQuery = true
+    INSERT INTO inventory
+    (
+        room_id,
+        hotel_id,
+        city,
+        date,
+        book_count,
+        reserved_count,
+        total_count,
+        surge_factor,
+        price,
+        closed
     )
-    void initializeRoom(
+    SELECT
+        :roomId,
+        :hotelId,
+        :city,
+        gs::date,
+        0,
+        0,
+        :totalCount,
+        1.00,
+        :price,
+        false
+    FROM generate_series(
+        :startDate,
+        :endDate,
+        INTERVAL '1 day'
+    ) gs
+    ON CONFLICT (room_id, date) DO NOTHING
+    """, nativeQuery = true)
+    void initializeRoomInventory(
             @Param("roomId") Long roomId,
             @Param("hotelId") Long hotelId,
             @Param("city") String city,
-            @Param("date") LocalDate date,
-            @Param("bookCount") Integer bookCount,
-            @Param("reservedCount") Integer reservedCount,
             @Param("totalCount") Integer totalCount,
-            @Param("surgeFactor") BigDecimal surgeFactor,
             @Param("price") BigDecimal price,
-            @Param("closed") Boolean closed
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
     );
 
     @Query("""
@@ -72,23 +94,28 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
     List<InventoryEntity> findAndLockAvailableInventory(
             @Param("roomId") Long roomId,
             @Param("checkInDate") LocalDate checkInDate,
-            @Param("checkOutDate") LocalDate checkOutDate,
-            @Param("roomsCount") Integer roomsCount
+            @Param("checkOutDate") LocalDate checkOutDate
     );
 
     @Modifying
     @Query("""
             UPDATE InventoryEntity i
-            SET i.reservedCount=i.reservedCount+ :numberOfRooms
+            SET i.reservedCount=i.reservedCount+ 1
             Where i.room.id=:roomId
             AND i.date BETWEEN :checkInDate AND :checkOutDate
-            And (i.totalCount-i.bookCount-i.reservedCount)>=:numberOfRooms
+            And (i.totalCount-i.bookCount-i.reservedCount)>0
             AND i.closed=false
             """)
     void initBooking(
             @Param("roomId") Long roomId,
             @Param("checkInDate") LocalDate checkInDate,
-            @Param("checkOutDate") LocalDate checkOutDate,
-            @Param("numberOfRooms") int numberOfRooms
+            @Param("checkOutDate") LocalDate checkOutDate
     );
+
+    @Query("""
+    SELECT MAX(i.date)
+    FROM InventoryEntity i
+    WHERE i.room.id = :roomId
+""")
+    LocalDate findLastInventoryDate(@Param("roomId") Long roomId);
 }

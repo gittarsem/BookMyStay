@@ -21,4 +21,6 @@ public interface InventoryService {
     void deleteAllInventories(RoomEntity room);
 
     HotelSearchResponseDTO searchHotels(String keyword, String city, Double maxPrice, Double minPrice, Double ratings, String sortField, String sortOrder, int page, int size) throws IOException;
+
+    public void scheduledInventoryJob();
 }

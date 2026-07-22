@@ -44,31 +44,50 @@ public class InventoryServiceImpl implements InventoryService {
 
     @Override
     @Transactional
-    public void initializeRoom(RoomEntity room){
-        LocalDate today=LocalDate.now();
-        LocalDate endDate=today.plusDays(DAYS_AHEAD);
-        for(LocalDate date=today;!date.isAfter(endDate); date=date.plusDays(1)){
-           inventoryRepository.initializeRoom(
-                   room.getId(),
-                   room.getHotel().getId(),
-                   room.getHotel().getCity(),
-                   date,
-                   0,
-                   0,
-                   room.getCapacity(),
-                   BigDecimal.ONE,
-                   room.getPrice(),
-                   false
-           );
+    public void initializeRoom(RoomEntity room) {
+
+        LocalDate today = LocalDate.now();
+        LocalDate requiredEndDate = today.plusDays(DAYS_AHEAD);
+
+        LocalDate lastInventoryDate =
+                inventoryRepository.findLastInventoryDate(room.getId());
+
+        LocalDate startDate;
+
+        if (lastInventoryDate == null) {
+            startDate = today;
+        } else {
+            startDate = lastInventoryDate.plusDays(1);
         }
 
+        if (startDate.isAfter(requiredEndDate)) {
+            return;
+        }
+
+        inventoryRepository.initializeRoomInventory(
+                room.getId(),
+                room.getHotel().getId(),
+                room.getHotel().getCity(),
+                1,
+                room.getPrice(),
+                startDate,
+                requiredEndDate
+        );
     }
+
     @Transactional
     @Scheduled(cron = "0 0 1 * * ?")
     public void scheduledInventoryJob() {
+
         List<RoomEntity> rooms = roomRepo.findAll();
+
+        log.info("Rooms found: {}", rooms.size());
+
         for (RoomEntity room : rooms) {
-            if(room.getHotel().getActive()) initializeRoom(room);
+            if (room.getHotel().getActive()) {
+                initializeRoom(room);
+            }
+
         }
     }
 
