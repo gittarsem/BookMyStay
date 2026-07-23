@@ -226,4 +226,8 @@ public class InventoryServiceImpl implements InventoryService {
                 inventoryUpdateRequest.getClosed());
         return "Updated Room with id: " + roomId;
     }
+
+
+
+
 }

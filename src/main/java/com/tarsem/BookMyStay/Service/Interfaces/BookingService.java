@@ -11,5 +11,10 @@ import java.util.List;
 public interface BookingService {
     BookingDTO initializeBooking(BookingRequestDTO bookingRequestDTO) throws RoomNotAvailableException;
 
-    @Nullable BookingDTO addGuests(Long bookingId, List<GuestDTO> guests);
+    @Nullable
+    BookingDTO addGuests(Long bookingId, List<GuestDTO> guests);
+
+    public void releaseInventory(Long bookingId);
+
+    public void confirmInventory(Long bookingId);
 }

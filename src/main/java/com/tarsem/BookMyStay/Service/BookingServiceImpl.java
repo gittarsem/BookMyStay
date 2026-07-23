@@ -131,5 +131,28 @@ public class BookingServiceImpl implements BookingService {
 
     }
 
+    @Override
+    @Transactional
+    public void releaseInventory(Long bookingId){
+        log.info("Releasing inventory for booking : {}",bookingId);
+
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()-> new ResourceNotFoundException("Booking does not exist with this ID: "+bookingId)
+        );
+
+        inventoryRepository.releaseReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+    }
+
+    @Override
+    @Transactional
+    public void confirmInventory(Long bookingId){
+        log.info("Confirming inventory for booking : {}",bookingId);
+
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()-> new ResourceNotFoundException("Booking does not exist with this ID: "+bookingId)
+        );
+
+        inventoryRepository.confirmReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+    }
 
 }

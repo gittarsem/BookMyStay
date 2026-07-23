@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -88,7 +89,7 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
              i.room.id= :roomId
              AND i.closed=false
              AND i.date BETWEEN :checkInDate AND :checkOutDate
-             AND (i.totalCount-i.bookCount-i.reservedCount)>=:roomsCount
+             AND (i.totalCount-i.bookCount-i.reservedCount)>0
             """)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<InventoryEntity> findAndLockAvailableInventory(
@@ -118,4 +119,38 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
     WHERE i.room.id = :roomId
 """)
     LocalDate findLastInventoryDate(@Param("roomId") Long roomId);
+
+
+    @Modifying
+    @Query(value = """
+            UPDATE InventoryEntity i
+            SET i.reservedCount=i.reservedCount-1
+            WHERE i.room.id =:roomId
+             AND i.date BETWEEN :checkInDate AND :checkOutDate
+            AND (i.reservedCount)>0
+            """)
+    void releaseReservation(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate
+
+    );
+
+    @Modifying
+    @Query(
+            """
+            UPDATE InventoryEntity i
+            SET
+             i.reservedCount=i.reservedCount-1,
+             i.bookCount=i.bookCount+1
+            WHERE i.room.id =:roomId
+             AND i.date BETWEEN :checkInDate AND :checkOutDate
+             AND (i.reservedCount)>0
+            """
+    )
+    void confirmReservation(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate
+    );
 }
