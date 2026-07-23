@@ -6,6 +6,7 @@ import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.Strategy.PricingService;
+import com.tarsem.BookMyStay.dto.BookingCancelDTO;
 import com.tarsem.BookMyStay.dto.BookingDTO;
 import com.tarsem.BookMyStay.dto.BookingRequestDTO;
 import com.tarsem.BookMyStay.dto.GuestDTO;
@@ -153,6 +154,32 @@ public class BookingServiceImpl implements BookingService {
         );
 
         inventoryRepository.confirmReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+    }
+
+    @Transactional
+    public BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException {
+        log.info("Cancel request for booking : {}",bookingId);
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()->new ResourceNotFoundException("Booking does not exist for id :" + bookingId)
+        );
+        if(!booking.getUser().equals(giveMeCurrentUser())){
+            throw new UnAuthorisedException("You are not authorised to cancel this booking");
+        }
+        if(booking.getStatus()!=BookingStatus.BOOKED){
+            throw new IllegalStateException("Booking for this id is not booked or payment is pending");
+        }
+        inventoryRepository.cancelBooking(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+
+        booking.setStatus(BookingStatus.CANCELLED);
+
+        return BookingCancelDTO.builder()
+                .bookingId(booking.getId())
+                .bookingStatus(booking.getStatus())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .message("Booking cancelled successfully.")
+                .build();
+
     }
 
 }

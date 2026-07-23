@@ -57,6 +57,7 @@ public class PaymentServiceImpl implements PaymentService {
         if(payment==null){
             payment=new PaymentEntity();
             payment.setBooking(booking);
+            payment.setPaymentStatus(PaymentStatus.PENDING);
         }
         if(payment.getPaymentStatus() == PaymentStatus.SUCCESS){
             throw new PaymentException("Payment has already been completed.");
@@ -79,14 +80,11 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setGateway(PaymentGateway.RAZORPAY);
         payment.setGatewayOrderId(order.get("id").toString());
         payment.setCurrency("INR");
-        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        payment.setPaymentStatus(PaymentStatus.PENDING);
         payment.setGatewayPaymentId(null);
         payment.setSignature(null);
-
         booking.setPayment(payment);
         paymentRepository.save(payment);
-
-
         return CreateOrderResponse.builder()
                 .orderId(order.get("id").toString())
                 .amount(payment.getAmount())
@@ -106,6 +104,16 @@ public class PaymentServiceImpl implements PaymentService {
 
         BookingEntity booking=payment.getBooking();
 
+        if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
+            return VerifyPaymentResponse.builder()
+                    .bookingId(booking.getId())
+                    .razorpayPaymentId(payment.getGatewayPaymentId())
+                    .message("Payment has already been processed.")
+                    .paymentStatus(payment.getPaymentStatus())
+                    .bookingStatus(booking.getStatus())
+                    .build();
+        }
+
         if (!payment.getGatewayOrderId().equals(request.getOrderId())) {
             return failureResponse(payment,booking,"Order ID mismatch");
         }
@@ -122,13 +130,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         String paymentStatus=currPayment.get("status");
         if("captured".equals(paymentStatus)){
-            confirmBooking(request,payment,booking);
+            confirmBooking(payment,booking,request.getPaymentId());
+            payment.setSignature(request.getSignature());
         }
         else{
             return failureResponse(payment,booking,"Payment Failed");
         }
 
-        paymentRepository.save(payment);
         return VerifyPaymentResponse.builder()
                 .bookingId(booking.getId())
                 .razorpayPaymentId(payment.getGatewayPaymentId())
@@ -138,13 +146,13 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
-    private void confirmBooking(VerifyPaymentRequest request,PaymentEntity payment, BookingEntity booking) {
+    private void confirmBooking(PaymentEntity payment, BookingEntity booking,String paymentId) {
         log.info("Confirming Booking for booking id:{}",booking.getId());
         bookingService.confirmInventory(booking.getId());
         booking.setStatus(BookingStatus.BOOKED);
         payment.setPaymentStatus(PaymentStatus.SUCCESS);
-        payment.setGatewayPaymentId(request.getPaymentId());
-        payment.setSignature(request.getSignature());
+        payment.setGatewayPaymentId(paymentId);
+
     }
 
     private void failedBooking(PaymentEntity payment, BookingEntity booking) {
@@ -159,9 +167,9 @@ public class PaymentServiceImpl implements PaymentService {
             BookingEntity booking,
             String message
     ) {
-        failedBooking(payment, booking);
-
-        paymentRepository.save(payment);
+        if (payment.getPaymentStatus() == PaymentStatus.PENDING) {
+            failedBooking(payment, booking);
+        }
 
         return VerifyPaymentResponse.builder()
                 .bookingId(booking.getId())
@@ -173,6 +181,7 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public void handleWebhook(String payload, String signature) throws Exception {
 
         if(!razorpayWebhookUtil.verifyWebhookSignature(payload,signature)){
@@ -183,9 +192,19 @@ public class PaymentServiceImpl implements PaymentService {
 
         String event=object.getString("event");
 
-        if("payment.captured".equals(event)){
-            handlePaymentCaptured(object);
+        switch (event) {
+            case "payment.captured":
+                handlePaymentCaptured(object);
+                break;
+
+            case "payment.failed":
+                handleFailedBooking(object);
+                break;
+
+            default:
+                log.info("Ignoring webhook event: {}", event);
         }
+
     }
 
     private void handlePaymentCaptured(JSONObject object) {
@@ -202,19 +221,34 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Payment not found"));
 
-        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+        if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
+            return;
+        }
+        BookingEntity booking = payment.getBooking();
+        confirmBooking(payment,booking,paymentId);
+
+    }
+
+    private void handleFailedBooking(JSONObject object) {
+        JSONObject paymentJson = object
+                .getJSONObject("payload")
+                .getJSONObject("payment")
+                .getJSONObject("entity");
+
+        String orderId = paymentJson.getString("order_id");
+
+        PaymentEntity payment = paymentRepository
+                .findByGatewayOrderId(orderId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Payment not found"));
+
+        if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
             return;
         }
 
-        payment.setGatewayPaymentId(paymentId);
-        payment.setPaymentStatus(PaymentStatus.SUCCESS);
-
         BookingEntity booking = payment.getBooking();
-        booking.setStatus(BookingStatus.BOOKED);
 
-        paymentRepository.save(payment);
-
-
+        failedBooking(payment, booking);
     }
 
     private boolean validateRazorpayPayment(
@@ -234,5 +268,7 @@ public class PaymentServiceImpl implements PaymentService {
                 && rOrderId.equals(request.getOrderId())
                 && rAmount == expectedAmount;
     }
+
+
 
 }

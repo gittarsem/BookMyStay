@@ -12,7 +12,7 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import java.math.BigDecimal;
 
-@Document(indexName = "hotels",createIndex = false)
+@Document(indexName = "hotels",createIndex = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @AllArgsConstructor

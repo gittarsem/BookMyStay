@@ -153,4 +153,19 @@ public interface InventoryRepository extends JpaRepository<InventoryEntity,Long>
             @Param("checkInDate") LocalDate checkInDate,
             @Param("checkOutDate") LocalDate checkOutDate
     );
+
+
+    @Modifying
+    @Query("""
+            UPDATE InventoryEntity i
+            SET i.bookCount=i.bookCount-1
+            WHERE i.room.id=:roomId
+            AND i.date BETWEEN :checkInDate AND :checkOutDate
+            AND i.bookCount>0
+            """)
+    void cancelBooking(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate
+    );
 }

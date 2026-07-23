@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ElasticSearchConfig {
 
-    @Value("${ES_URL}")
+    @Value("${spring.elasticsearch.uris}")
     private String esUrl;
 
     @Bean

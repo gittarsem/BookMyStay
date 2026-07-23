@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
+import com.tarsem.BookMyStay.dto.BookingCancelDTO;
 import com.tarsem.BookMyStay.dto.BookingDTO;
 import com.tarsem.BookMyStay.dto.BookingRequestDTO;
 import com.tarsem.BookMyStay.dto.GuestDTO;
@@ -30,5 +31,10 @@ public class HotelBookingController {
     @PostMapping("/{bookingId}/addGuests")
     public ResponseEntity<BookingDTO> addGuest(@PathVariable Long bookingId, @RequestBody List<GuestDTO> guests){
         return ResponseEntity.ok(bookingService.addGuests(bookingId,guests));
+    }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<BookingCancelDTO> cancelBooking(@PathVariable Long bookingId){
+        return ResponseEntity.ok(bookingService.cancelBooking(bookingId));
     }
 }
