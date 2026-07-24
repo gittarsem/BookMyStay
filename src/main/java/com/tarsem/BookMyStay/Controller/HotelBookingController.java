@@ -33,7 +33,7 @@ public class HotelBookingController {
         return ResponseEntity.ok(bookingService.addGuests(bookingId,guests));
     }
 
-    @PostMapping("/cancel")
+    @PostMapping("/cancel/{bookingId}")
     public ResponseEntity<BookingCancelDTO> cancelBooking(@PathVariable Long bookingId){
         return ResponseEntity.ok(bookingService.cancelBooking(bookingId));
     }

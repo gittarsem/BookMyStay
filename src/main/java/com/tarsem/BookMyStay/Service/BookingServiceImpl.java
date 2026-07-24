@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.*;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
+import com.tarsem.BookMyStay.Enums.PaymentStatus;
 import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
@@ -80,6 +81,7 @@ public class BookingServiceImpl implements BookingService {
                 .status(BookingStatus.PAYMENT_PENDING)
                 .hotel(hotel)
                 .room(candidateRoom)
+                .roomsCount(1)
                 .checkInDate(bookingRequest.getCheckInDate())
                 .checkOutDate(bookingRequest.getCheckOutDate())
                 .adultCount(bookingRequest.getAdultCount())
@@ -171,6 +173,7 @@ public class BookingServiceImpl implements BookingService {
         inventoryRepository.cancelBooking(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
 
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.getPayment().setPaymentStatus(PaymentStatus.CANCELLED);
 
         return BookingCancelDTO.builder()
                 .bookingId(booking.getId())
@@ -180,6 +183,15 @@ public class BookingServiceImpl implements BookingService {
                 .message("Booking cancelled successfully.")
                 .build();
 
+    }
+
+    @Override
+    @Transactional
+    public void expireBooking(BookingEntity booking) {
+        log.info("Expiring booking: {}", booking.getId());
+        releaseInventory(booking.getId());
+        booking.setStatus(BookingStatus.EXPIRED);
+        booking.getPayment().setPaymentStatus(PaymentStatus.EXPIRED);
     }
 
 }

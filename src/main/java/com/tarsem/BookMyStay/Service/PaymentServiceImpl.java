@@ -29,6 +29,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 
 @Slf4j
@@ -90,6 +93,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .amount(payment.getAmount())
                 .currency("INR")
                 .keyId(key)
+                .expiresAt(Instant.now().plus(15, ChronoUnit.MINUTES))
                 .build();
     }
 
@@ -108,7 +112,7 @@ public class PaymentServiceImpl implements PaymentService {
             return VerifyPaymentResponse.builder()
                     .bookingId(booking.getId())
                     .razorpayPaymentId(payment.getGatewayPaymentId())
-                    .message("Payment has already been processed.")
+                    .message("Payment has already been processed or has been expired")
                     .paymentStatus(payment.getPaymentStatus())
                     .bookingStatus(booking.getStatus())
                     .build();
@@ -221,10 +225,18 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Payment not found"));
 
-        if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
+        BookingEntity booking = payment.getBooking();
+        if (booking.getStatus() != BookingStatus.PAYMENT_PENDING ||
+                payment.getPaymentStatus() != PaymentStatus.PENDING) {
+
+            log.warn("Ignoring captured payment for booking {}", booking.getId());
+
+            // Future:
+            // Trigger refund
+
             return;
         }
-        BookingEntity booking = payment.getBooking();
+
         confirmBooking(payment,booking,paymentId);
 
     }

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Data
 @AllArgsConstructor
@@ -18,4 +20,6 @@ public class CreateOrderResponse {
     private String currency;
 
     private String keyId;
+
+    private Instant expiresAt;
 }

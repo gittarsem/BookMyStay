@@ -1,5 +1,7 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
+import com.tarsem.BookMyStay.Entity.BookingEntity;
+import com.tarsem.BookMyStay.Entity.PaymentEntity;
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.dto.BookingCancelDTO;
 import com.tarsem.BookMyStay.dto.BookingDTO;
@@ -20,4 +22,6 @@ public interface BookingService {
     public void confirmInventory(Long bookingId);
 
     BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException;
+
+    public void expireBooking(BookingEntity booking);
 }

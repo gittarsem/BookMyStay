@@ -274,7 +274,7 @@
           align-items: center;
           justify-content: center;
           gap: 16px;
-          z-index: 20;
+          z-index: 2147483647; /* NEW: raised so it can outrank Razorpay's iframe when playing during booking expiry */
         }
 
         .status-overlay.active {
@@ -369,10 +369,176 @@
           from { opacity: 0; transform: translateY(4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+
+        /* ====================== NEW: Booking countdown timer styles ====================== */
+        .booking-timer {
+          display: none;
+          text-align: center;
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--blue-700);
+          background: var(--blue-50);
+          border: 1px solid var(--blue-100);
+          border-radius: var(--radius-md);
+          padding: 11px;
+          margin-bottom: 16px;
+          letter-spacing: 0.01em;
+        }
+
+        .booking-timer.warning {
+          color: var(--red-600);
+          background: var(--red-50);
+          border-color: #fecaca;
+        }
+
+        /* ====================== NEW: Floating countdown bar (visible over the Razorpay iframe) ======================
+           Razorpay's checkout renders in an iframe overlay with a very high z-index, which covers
+           the normal page content — including .booking-timer above the Pay Now button. This bar is
+           position:fixed with a higher z-index so the countdown stays visible while checkout is open. */
+        .booking-timer-floating {
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 2147483647; /* max 32-bit int — higher than Razorpay's overlay */
+          text-align: center;
+          font-size: 14px;
+          font-weight: 700;
+          letter-spacing: 0.01em;
+          color: var(--white);
+          background: var(--blue-700);
+          padding: 10px 12px;
+          box-shadow: 0 2px 10px rgba(15, 23, 42, 0.25);
+        }
+
+        .booking-timer-floating.warning {
+          background: var(--red-600);
+        }
+        /* ====================== END NEW: Floating countdown bar ====================== */
+
+        /* ====================== NEW: Booking Expired full-screen state (Booking.com / Airbnb style) ====================== */
+        .expired-screen {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          z-index: 2147483647; /* NEW: max 32-bit int — must outrank Razorpay's iframe overlay */
+          justify-content: center;
+          align-items: center;
+          padding: 20px;
+        }
+
+        .expired-screen.active {
+          display: flex;
+          animation: fadeInBlock 0.35s ease;
+        }
+
+        .expired-card {
+          width: 100%;
+          max-width: 400px;
+          background: var(--white);
+          padding: 40px 32px 32px;
+          border-radius: var(--radius-lg);
+          text-align: center;
+          box-shadow: var(--shadow-card);
+          border: 1px solid var(--slate-200);
+        }
+
+        .expired-icon {
+          font-size: 56px;
+          line-height: 1;
+          margin-bottom: 18px;
+        }
+
+        .expired-card h2 {
+          color: var(--red-600);
+          font-size: 21px;
+          letter-spacing: -0.01em;
+          margin-bottom: 10px;
+        }
+
+        .expired-card p {
+          color: var(--slate-500);
+          font-size: 14px;
+          line-height: 1.5;
+          margin-bottom: 22px;
+        }
+
+        .expired-info {
+          background: var(--red-50);
+          border: 1px solid #fecaca;
+          border-radius: var(--radius-md);
+          padding: 16px 18px;
+          margin-bottom: 24px;
+          text-align: left;
+        }
+
+        .expired-info-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 13.5px;
+        }
+
+        .expired-info-row + .expired-info-row {
+          margin-top: 10px;
+          padding-top: 10px;
+          border-top: 1px solid #fecaca;
+        }
+
+        .expired-info-row strong {
+          color: var(--blue-900);
+          font-weight: 600;
+        }
+
+        .expired-info-row span {
+          color: var(--slate-500);
+        }
+
+        .expired-info-row .expired-status {
+          color: var(--red-600);
+          font-weight: 700;
+        }
+
+        .expired-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .expired-actions button.primary {
+          margin: 0;
+        }
+
+        .expired-actions button.secondary {
+          width: 100%;
+          padding: 15px;
+          border: 1.5px solid var(--slate-200);
+          border-radius: var(--radius-md);
+          background: var(--white);
+          color: var(--blue-900);
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .expired-actions button.secondary:hover {
+          background: var(--blue-50);
+          border-color: var(--blue-500);
+        }
+        /* ====================== END NEW: Booking Expired full-screen state ====================== */
+        /* ====================== END NEW: Booking countdown timer styles ====================== */
     </style>
 </head>
 
 <body>
+
+<!-- ====================== NEW: Floating countdown bar, shown while Razorpay checkout is open ====================== -->
+<div id="bookingTimerFloating" class="booking-timer-floating"></div>
+<!-- ====================== END NEW: Floating countdown bar ====================== -->
+
 <div class="card">
 
     <div class="card__header">
@@ -395,6 +561,10 @@
         <input id="jwt" placeholder="Paste your token" />
     </div>
 
+    <!-- ====================== NEW: Booking countdown timer element ====================== -->
+    <div id="bookingTimer" class="booking-timer"></div>
+    <!-- ====================== END NEW: Booking countdown timer element ====================== -->
+
     <button class="primary" id="payBtn" onclick="payNow()">Pay Now</button>
 
     <div id="result">Enter your Booking ID to continue.</div>
@@ -415,6 +585,37 @@
         </div>
         <div id="statusText" class="status-text"></div>
     </div>
+
+    <!-- ====================== NEW: Booking Expired full-screen state ====================== -->
+    <div id="expiredScreen" class="expired-screen">
+        <div class="expired-card">
+            <div class="expired-icon">⏰</div>
+
+            <h2>Booking Expired</h2>
+            <p>Your booking could not be completed within the allotted time. Your reservation has been released.</p>
+
+            <div class="expired-info">
+                <div class="expired-info-row">
+                    <strong>Booking ID</strong>
+                    <span id="expiredBookingId"></span>
+                </div>
+                <div class="expired-info-row">
+                    <strong>Status</strong>
+                    <span class="expired-status">Reservation Released</span>
+                </div>
+                <div class="expired-info-row">
+                    <strong>Inventory</strong>
+                    <span class="expired-status">Restored</span>
+                </div>
+            </div>
+
+            <div class="expired-actions">
+                <button class="primary" onclick="window.location.reload()">Book Again</button>
+                <button class="secondary" onclick="window.location.href='/'">Go Home</button>
+            </div>
+        </div>
+    </div>
+    <!-- ====================== END NEW: Booking Expired full-screen state ====================== -->
 
 </div>
 
@@ -461,6 +662,198 @@
       result.classList.add("result-fade");
     }
 
+    /* ====================== NEW: Booking countdown timer state & helpers ======================
+       These additions do not touch the existing payment / Razorpay / verification logic below.
+       They only:
+         1. Read `expiresAt` from the create-order response
+         2. Render + tick a countdown above the Pay Now button
+         3. Disable the button, close Razorpay, and redirect when the booking expires
+    */
+
+    const BOOKING_STORAGE_KEY = "bms_currentBooking";
+    // NOTE: This uses localStorage so the countdown survives a page refresh, per requirement 3.
+    // If you are previewing this file inside a sandboxed artifact viewer, localStorage may be
+    // unavailable there — it will work normally once this file is served from your own domain.
+
+    // ====================== NEW: Test override for the countdown duration ======================
+    // For quick manual testing without changing your backend's expiresAt, you can override the
+    // countdown length two ways (checked in this order):
+    //   1. URL query param, e.g.  booking-payment.html?testSeconds=15
+    //   2. The constant below — set it to a number (in seconds) to force every timer to that
+    //      length, or leave it as null to always use the real expiresAt from create-order.
+    const TEST_OVERRIDE_SECONDS = 15; // e.g. set to 15 to always test a 15-second countdown
+
+    function getTestOverrideSeconds() {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get("testSeconds");
+      if (fromUrl !== null && !isNaN(Number(fromUrl))) {
+        return Number(fromUrl);
+      }
+      if (TEST_OVERRIDE_SECONDS !== null) {
+        return TEST_OVERRIDE_SECONDS;
+      }
+      return null;
+    }
+    // ====================== END NEW: Test override for the countdown duration ======================
+
+    let bookingExpiresAtMs = null;   // authoritative expiry timestamp (ms since epoch), from server
+    let bookingTimerInterval = null; // setInterval handle
+    let bookingExpired = false;      // guards Razorpay open/verify once expired
+    let razorpayInstance = null;     // reference so we can force-close it on expiry
+
+    function formatRemainingTime(msRemaining) {
+      const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0");
+    }
+
+    function startBookingTimer(expiresAt) {
+      // Always derive remaining time from the server-provided expiresAt — never from a
+      // hardcoded 15-minute assumption. Calling this again (e.g. on retry) with the same
+      // expiresAt value simply re-renders the same countdown instead of resetting it.
+      stopBookingTimer();
+
+      // ====================== NEW: apply test override, if set, on top of the real expiresAt ======================
+      const overrideSeconds = getTestOverrideSeconds();
+      if (overrideSeconds !== null) {
+        bookingExpiresAtMs = Date.now() + overrideSeconds * 1000;
+        console.warn(
+          "[TEST MODE] Booking timer overridden to " + overrideSeconds + "s. " +
+          "Remove testSeconds param / TEST_OVERRIDE_SECONDS to use the real expiresAt."
+        );
+      } else {
+        bookingExpiresAtMs = new Date(expiresAt).getTime();
+      }
+      // ====================== END NEW ======================
+
+      bookingExpired = false;
+
+      const bookingId = document.getElementById("bookingId").value;
+      try {
+        localStorage.setItem(
+          BOOKING_STORAGE_KEY,
+          JSON.stringify({ bookingId: bookingId, expiresAt: bookingExpiresAtMs })
+        );
+      } catch (e) {
+        // localStorage unavailable (e.g. private browsing) — timer still works for this session
+      }
+
+      const timerEl = document.getElementById("bookingTimer");
+      const floatingEl = document.getElementById("bookingTimerFloating"); // NEW
+      timerEl.style.display = "block";
+      timerEl.classList.remove("warning");
+
+      function tick() {
+        const remaining = bookingExpiresAtMs - Date.now();
+
+        if (remaining <= 0) {
+          timerEl.classList.add("warning");
+          floatingEl.classList.add("warning");
+          timerEl.textContent = "🚫 Booking Expired";
+          floatingEl.textContent = "🚫 Booking Expired";
+          handleBookingExpiry();
+          return;
+        }
+
+        const label = "⏳ Booking expires in: " + formatRemainingTime(remaining);
+        const isWarning = remaining <= 60000;
+
+        timerEl.classList.toggle("warning", isWarning);
+        timerEl.textContent = label;
+
+        // NEW: keep the floating bar in sync too (it's the one visible over Razorpay's iframe)
+        floatingEl.classList.toggle("warning", isWarning);
+        floatingEl.textContent = label;
+      }
+
+      tick();
+      bookingTimerInterval = setInterval(tick, 1000);
+    }
+
+    function stopBookingTimer() {
+      if (bookingTimerInterval) {
+        clearInterval(bookingTimerInterval);
+        bookingTimerInterval = null;
+      }
+    }
+
+    function clearBookingTimerUI() {
+      // Used on payment success: stop the timer AND remove the countdown from view (req. 5)
+      stopBookingTimer();
+      const timerEl = document.getElementById("bookingTimer");
+      timerEl.style.display = "none";
+      try {
+        localStorage.removeItem(BOOKING_STORAGE_KEY);
+      } catch (e) {}
+    }
+
+    async function handleBookingExpiry() {
+    stopBookingTimer();
+    bookingExpired = true;
+
+    try {
+        localStorage.removeItem(BOOKING_STORAGE_KEY);
+    } catch (e) {}
+
+    // Close Razorpay if possible
+    if (razorpayInstance) {
+        try {
+            razorpayInstance.close();
+        } catch (e) {}
+    }
+
+    // Hide floating timer
+    document.getElementById("bookingTimerFloating").style.display = "none";
+
+    // Disable inputs
+    document.getElementById("bookingId").disabled = true;
+    document.getElementById("jwt").disabled = true;
+
+    // Disable button
+    const button = document.getElementById("payBtn");
+    button.disabled = true;
+    button.innerText = "Booking Expired";
+
+    // Show expired message in result
+    renderResult(`
+        <div class="error-tag">❌ Booking Expired</div>
+        <br>
+        Your booking has expired. Please create a new booking.
+    `);
+
+    // Console message
+    console.log("Booking Expired: redirecting to home page...");
+
+    // Redirect after 3 seconds
+    setTimeout(() => {
+        window.location.href = "/payment-test.html";
+    }, 3000);
+}
+
+    // Restore countdown across a page refresh using the previously stored expiresAt
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        const saved = localStorage.getItem(BOOKING_STORAGE_KEY);
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+        if (!parsed || !parsed.expiresAt) return;
+
+        if (parsed.expiresAt > Date.now()) {
+          if (parsed.bookingId) {
+            document.getElementById("bookingId").value = parsed.bookingId;
+          }
+          startBookingTimer(parsed.expiresAt);
+        } else {
+          localStorage.removeItem(BOOKING_STORAGE_KEY);
+        }
+      } catch (e) {
+        // ignore malformed/unavailable storage
+      }
+    });
+    /* ====================== END NEW: Booking countdown timer state & helpers ====================== */
+
     async function payNow() {
       const bookingId = document.getElementById("bookingId").value;
       const jwt = document.getElementById("jwt").value;
@@ -470,6 +863,12 @@
         alert("Please enter Booking ID");
         return;
       }
+
+      // ====================== NEW: guard against paying on an already-expired booking ======================
+      if (bookingExpired) {
+        return;
+      }
+      // ====================== END NEW ======================
 
       button.disabled = true;
       button.innerText = "Creating Order...";
@@ -503,6 +902,12 @@
 
         const order = await orderResponse.json();
 
+        // ====================== NEW: start/refresh the countdown from the server's expiresAt ======================
+        if (order.expiresAt) {
+          startBookingTimer(order.expiresAt);
+        }
+        // ====================== END NEW ======================
+
         button.innerText = "Opening Payment...";
 
         const options = {
@@ -523,6 +928,17 @@
           },
           modal: {
             ondismiss: async function () {
+              document.getElementById("bookingTimerFloating").style.display = "none"; // NEW: hide floating bar once modal closes
+
+              // ====================== NEW: don't override the expired state ======================
+              // razorpayInstance.close() inside handleBookingExpiry() also triggers this ondismiss
+              // callback. If the booking already expired, skip the "Payment Cancelled" UI entirely —
+              // handleBookingExpiry() is already showing (or about to show) the expired screen.
+              if (bookingExpired) {
+                return;
+              }
+              // ====================== END NEW ======================
+
               button.disabled = false;
               button.innerText = "Pay Now";
               await showStatusAnimation("fail", "Payment Cancelled");
@@ -530,6 +946,12 @@
             }
           },
           handler: async function (response) {
+            // ====================== NEW: don't verify if the booking expired while checkout was open ======================
+            if (bookingExpired) {
+              return;
+            }
+            // ====================== END NEW ======================
+
             renderResult("<div class='loading'>Verifying payment…</div>");
 
             try {
@@ -562,6 +984,11 @@
               button.disabled = false;
               button.innerText = "Pay Again";
 
+              // ====================== NEW: stop and remove the countdown on confirmed success ======================
+              document.getElementById("bookingTimerFloating").style.display = "none";
+              clearBookingTimerUI();
+              // ====================== END NEW ======================
+
               await showStatusAnimation("success", "Payment Successful");
 
               renderResult(`
@@ -589,8 +1016,10 @@
         };
 
         const razorpay = new Razorpay(options);
+        razorpayInstance = razorpay; // NEW: keep a reference so handleBookingExpiry() can close it
 
         razorpay.on("payment.failed", async function (response) {
+          document.getElementById("bookingTimerFloating").style.display = "none"; // NEW: hide floating bar once modal closes
           button.disabled = false;
           button.innerText = "Retry Payment";
           await showStatusAnimation("fail", "Payment Failed");
@@ -605,7 +1034,21 @@
             <br><br>
             <b>Payment ID</b><br>${response.error.metadata.payment_id}
           `);
+          // Timer intentionally keeps running here (req. 6) so the user can retry until expiry
         });
+
+        // ====================== NEW: don't open checkout if the booking already expired ======================
+        if (bookingExpired) {
+          return;
+        }
+        // ====================== END NEW ======================
+
+        // NEW: reveal the floating countdown bar so it's visible above the Razorpay iframe
+        if (bookingExpiresAtMs) {
+          const floatingEl = document.getElementById("bookingTimerFloating");
+          floatingEl.style.display = "block";
+          floatingEl.classList.toggle("warning", bookingExpiresAtMs - Date.now() <= 60000);
+        }
 
         razorpay.open();
       } catch (e) {
