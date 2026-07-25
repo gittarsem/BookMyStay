@@ -681,7 +681,7 @@
     //   1. URL query param, e.g.  booking-payment.html?testSeconds=15
     //   2. The constant below — set it to a number (in seconds) to force every timer to that
     //      length, or leave it as null to always use the real expiresAt from create-order.
-    const TEST_OVERRIDE_SECONDS = 15; // e.g. set to 15 to always test a 15-second countdown
+    const TEST_OVERRIDE_SECONDS = 600; // e.g. set to 15 to always test a 15-second countdown
 
     function getTestOverrideSeconds() {
       const params = new URLSearchParams(window.location.search);
