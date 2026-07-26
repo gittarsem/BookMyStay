@@ -34,18 +34,19 @@ public class SecurityConfig {
 
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors->{})
+                .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
-                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/auth/**",
+                        .requestMatchers(
+                                "/auth/**",
                                 "/hotels/search/**",
                                 "/admin/**",
                                 "/api/payments/**",
-                                "/payment-test.html")
-                        .permitAll()
+                                "/payment-test.html",
+                                "/kafka/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->
@@ -57,7 +58,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authenticationConfiguration
+    ) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
 }

@@ -38,9 +38,9 @@ public class SMTPEmailProvider {
         log.info("Sending email to {}", emailId);
         try {
             javaMailSender.send(message);
-        } catch (MailException ex) {
-            log.error("Failed to send email to {}", emailId, ex);
-            throw new EmailSendingException("Failed to send email", ex);
+        } catch (EmailSendingException e) {
+            e.printStackTrace();
+            throw new EmailSendingException("Failed to send email");
         }
         log.info("Email sent successfully to {}", emailId);
 

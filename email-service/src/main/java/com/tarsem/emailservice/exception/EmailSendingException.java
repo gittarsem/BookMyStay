@@ -4,7 +4,7 @@ import org.springframework.mail.MailException;
 
 public class EmailSendingException extends RuntimeException{
 
-    public EmailSendingException(String message, MailException ex){
+    public EmailSendingException(String message){
         super(message);
     }
 }
