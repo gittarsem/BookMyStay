@@ -1,6 +1,6 @@
 package com.tarsem.emailservice.service;
 
-import com.tarsem.emailservice.dto.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
 
 public interface EmailService {
 

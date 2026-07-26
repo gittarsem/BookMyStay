@@ -5,9 +5,11 @@ import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 
 @Slf4j
 @RequiredArgsConstructor
+@Service
 public class KafkaProducerService {
     private final KafkaTemplate<String, BookingConfirmedEvent> template;
 

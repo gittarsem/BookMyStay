@@ -21,6 +21,8 @@ import com.tarsem.BookMyStay.dto.payment.CreateOrderRequest;
 import com.tarsem.BookMyStay.dto.payment.CreateOrderResponse;
 import com.tarsem.BookMyStay.dto.payment.VerifyPaymentRequest;
 import com.tarsem.BookMyStay.dto.payment.VerifyPaymentResponse;
+import com.tarsem.BookMyStay.producer.KafkaProducerService;
+import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -32,6 +34,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.UUID;
 
 
 @Slf4j
@@ -48,7 +51,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final BookingRepository bookingRepository;
     private final RazorPaySignatureUtil paySignatureUtil;
     private final RazorpayWebhookUtil razorpayWebhookUtil;
-
+    private final KafkaProducerService kafkaProducerService;
     @Override
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest) throws RazorpayException {
@@ -131,7 +134,6 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         Payment currPayment=razorpayClient.payments.fetch(request.getPaymentId());
-
         String paymentStatus=currPayment.get("status");
         if("captured".equals(paymentStatus)){
             confirmBooking(payment,booking,request.getPaymentId());
@@ -140,7 +142,7 @@ public class PaymentServiceImpl implements PaymentService {
         else{
             return failureResponse(payment,booking,"Payment Failed");
         }
-
+        kafkaProducerService.publishConfirmedBooking(buildBookingConfirmedEvent(booking, payment));
         return VerifyPaymentResponse.builder()
                 .bookingId(booking.getId())
                 .razorpayPaymentId(payment.getGatewayPaymentId())
@@ -149,6 +151,8 @@ public class PaymentServiceImpl implements PaymentService {
                 .bookingStatus(booking.getStatus())
                 .build();
     }
+
+
 
     private void confirmBooking(PaymentEntity payment, BookingEntity booking,String paymentId) {
         log.info("Confirming Booking for booking id:{}",booking.getId());
@@ -281,6 +285,24 @@ public class PaymentServiceImpl implements PaymentService {
                 && rAmount == expectedAmount;
     }
 
+    private BookingConfirmedEvent buildBookingConfirmedEvent(BookingEntity booking, PaymentEntity payment) {
 
+        return BookingConfirmedEvent.builder()
+                .eventId(UUID.randomUUID())
+                .occurredAt(LocalDateTime.now())
+                .userId(booking.getUser().getId())
+                .customerName(booking.getUser().getName())
+                .customerEmail(booking.getUser().getEmail())
+                .hotelName(booking.getHotel().getName())
+                .roomType(booking.getRoom().getRoomType().toString())
+                .bookingId(booking.getId())
+                .amountPaid(payment.getAmount())
+                .paymentId(payment.getGatewayPaymentId())
+                .checkInDate(booking.getCheckInDate())
+                .checkOutDate(booking.getCheckOutDate())
+                .adults(booking.getAdultCount())
+                .children(booking.getChildCount())
+                .build();
+    }
 
 }
