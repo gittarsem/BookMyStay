@@ -23,6 +23,7 @@ import com.tarsem.BookMyStay.dto.payment.VerifyPaymentRequest;
 import com.tarsem.BookMyStay.dto.payment.VerifyPaymentResponse;
 import com.tarsem.BookMyStay.producer.KafkaProducerService;
 import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.enums.EventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
@@ -289,7 +290,6 @@ public class PaymentServiceImpl implements PaymentService {
 
         return BookingConfirmedEvent.builder()
                 .eventId(UUID.randomUUID())
-                .occurredAt(LocalDateTime.now())
                 .userId(booking.getUser().getId())
                 .customerName(booking.getUser().getName())
                 .customerEmail(booking.getUser().getEmail())
@@ -302,6 +302,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .checkOutDate(booking.getCheckOutDate())
                 .adults(booking.getAdultCount())
                 .children(booking.getChildCount())
+                .eventType(EventType.BOOKING_CONFIRMED)
                 .build();
     }
 
