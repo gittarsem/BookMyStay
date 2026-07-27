@@ -11,6 +11,11 @@ import com.tarsem.BookMyStay.dto.BookingCancelDTO;
 import com.tarsem.BookMyStay.dto.BookingDTO;
 import com.tarsem.BookMyStay.dto.BookingRequestDTO;
 import com.tarsem.BookMyStay.dto.GuestDTO;
+import com.tarsem.BookMyStay.producer.KafkaProducerService;
+import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
+import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
+import com.tarsem.bookmystay.events.enums.EventType;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -22,6 +27,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
 
@@ -37,7 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private PricingService pricingService;
     private ModelMapper modelMapper;
     private GuestRepository guestRepository;
-
+    private KafkaProducerService kafkaProducerService;
     @Override
     @Transactional
     public BookingDTO initializeBooking(BookingRequestDTO bookingRequest) throws RoomNotAvailableException {
@@ -174,7 +180,7 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
         booking.getPayment().setPaymentStatus(PaymentStatus.CANCELLED);
-
+        kafkaProducerService.publishCancelledBooking(buildBookingCancelledEvent(booking));
         return BookingCancelDTO.builder()
                 .bookingId(booking.getId())
                 .bookingStatus(booking.getStatus())
@@ -192,6 +198,34 @@ public class BookingServiceImpl implements BookingService {
         releaseInventory(booking.getId());
         booking.setStatus(BookingStatus.EXPIRED);
         booking.getPayment().setPaymentStatus(PaymentStatus.EXPIRED);
+        kafkaProducerService.publishExpiredBooking(buildBookingCancelledEvent(booking));
+    }
+
+    private BookingCancelledEvent buildBookingCancelledEvent(BookingEntity booking) {
+
+        return BookingCancelledEvent.builder()
+
+                .userId(booking.getUser().getId())
+                .customerName(booking.getUser().getName())
+                .customerEmail(booking.getUser().getEmail())
+                .hotelName(booking.getHotel().getName())
+                .roomType(booking.getRoom().getRoomType().toString())
+                .bookingId(booking.getId())
+                .refundAmount(booking.getPayment().getAmount())
+                .eventType(EventType.BOOKING_CANCELLED)
+                .build();
+    }
+
+    public BookingExpiredEvent buildBookingExpiredEvent(BookingEntity booking){
+        return BookingExpiredEvent.builder()
+                .userId(booking.getUser().getId())
+                .customerName(booking.getUser().getName())
+                .customerEmail(booking.getUser().getEmail())
+                .hotelName(booking.getHotel().getName())
+                .bookingId(booking.getId())
+                .amountPaid(booking.getPayment().getAmount())
+                .eventType(EventType.BOOKING_EXPIRED)
+                .build();
     }
 
 }

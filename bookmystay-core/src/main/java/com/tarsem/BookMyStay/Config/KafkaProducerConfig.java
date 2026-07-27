@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Config;
 
 import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.events.BaseEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -18,7 +19,7 @@ import java.util.Map;
 public class KafkaProducerConfig {
 
     @Bean
-    public ProducerFactory<String, BookingConfirmedEvent> producerFactory(
+    public ProducerFactory<String, BaseEvent> producerFactory(
             KafkaProperties kafkaProperties) {
 
         Map<String, Object> config = new HashMap<>(kafkaProperties.buildProducerProperties());
@@ -33,8 +34,8 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String, BookingConfirmedEvent> kafkaTemplate(
-            ProducerFactory<String, BookingConfirmedEvent> producerFactory) {
+    public KafkaTemplate<String, BaseEvent> kafkaTemplate(
+            ProducerFactory<String, BaseEvent> producerFactory) {
 
         return new KafkaTemplate<>(producerFactory);
     }
