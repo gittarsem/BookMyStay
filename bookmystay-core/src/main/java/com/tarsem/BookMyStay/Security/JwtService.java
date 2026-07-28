@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Security;
 
+import com.tarsem.BookMyStay.Enums.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -12,6 +13,7 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
@@ -24,8 +26,9 @@ public class JwtService {
     private final long REFRESH_TOKEN_TIME = 1000L * 60 * 60 * 24 * 10;
 
 
-    public String generateAccessToken(String email){
+    public String generateAccessToken(String email, Set<Role> roles){
         Map<String,Object> claims=new HashMap<>();
+        claims.put("roles",roles);
 
         return Jwts.builder()
                 .claims(claims)

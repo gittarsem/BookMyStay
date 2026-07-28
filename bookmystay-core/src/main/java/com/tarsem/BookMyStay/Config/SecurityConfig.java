@@ -42,11 +42,16 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/**",
                                 "/hotels/search/**",
-                                "/admin/**",
                                 "/api/payments/**",
                                 "/payment-test.html",
                                 "/kafka/**"
                         ).permitAll()
+
+                        .requestMatchers(
+                                "/admin/**"
+                        )
+                        .hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session ->

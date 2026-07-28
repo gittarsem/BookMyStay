@@ -3,6 +3,7 @@ package com.tarsem.BookMyStay.producer;
 import com.tarsem.BookMyStay.constants.KafkaTopics;
 import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
 import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
 import com.tarsem.bookmystay.events.events.BaseEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +27,7 @@ public class KafkaProducerService {
         template.send(KafkaTopics.BOOKING_CANCELLED,event);
     }
 
-    public void publishExpiredBooking(BookingCancelledEvent event){
+    public void publishExpiredBooking(BookingExpiredEvent event){
         log.info("Publishing BookingExpiredEvent for BookingId={} ",event.getBookingId());
         template.send(KafkaTopics.BOOKING_EXPIRED,event);
     }

@@ -39,7 +39,7 @@ public class AuthService {
             throw new RuntimeException("User with same email Id exist");
         }
         UserEntity newUser=modelMapper.map(signUpRequestDTO,UserEntity.class);
-        newUser.setRole(Set.of(Role.GUEST));
+        newUser.setRoles(Set.of(Role.ROLE_GUEST));
         newUser.setPassword(passwordEncoder.encode(signUpRequestDTO.getPassword()));
         userRepository.save(newUser);
 
@@ -54,7 +54,7 @@ public class AuthService {
         UserPrincipal userPrincipal= (UserPrincipal) authentication.getPrincipal();
         UserEntity user=userPrincipal.getUser();
         String[] token =new String[2];
-        token[0]= jwtService.generateAccessToken(user.getEmail());
+        token[0]= jwtService.generateAccessToken(user.getEmail(),user.getRoles());
         token[1]= jwtService.generateRefreshToken(user.getEmail());
         return token;
     }
@@ -62,6 +62,6 @@ public class AuthService {
     public String refreshToken(String refreshToken) {
         String email=jwtService.getUserEmailFromToken(refreshToken);
         UserEntity user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found with id: "+email));
-        return jwtService.generateAccessToken(user.getEmail());
+        return jwtService.generateAccessToken(user.getEmail(),user.getRoles());
     }
 }

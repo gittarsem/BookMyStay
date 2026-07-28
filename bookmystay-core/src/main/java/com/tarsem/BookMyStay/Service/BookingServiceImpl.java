@@ -198,7 +198,7 @@ public class BookingServiceImpl implements BookingService {
         releaseInventory(booking.getId());
         booking.setStatus(BookingStatus.EXPIRED);
         booking.getPayment().setPaymentStatus(PaymentStatus.EXPIRED);
-        kafkaProducerService.publishExpiredBooking(buildBookingCancelledEvent(booking));
+        kafkaProducerService.publishExpiredBooking(buildBookingExpiredEvent(booking));
     }
 
     private BookingCancelledEvent buildBookingCancelledEvent(BookingEntity booking) {
