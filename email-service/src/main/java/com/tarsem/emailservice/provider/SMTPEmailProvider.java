@@ -4,6 +4,7 @@ import com.tarsem.emailservice.exception.EmailSendingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,7 @@ public class SMTPEmailProvider {
         log.info("Sending email to {}", emailId);
         try {
             javaMailSender.send(message);
-        } catch (EmailSendingException e) {
+        } catch (MailException e) {
             e.printStackTrace();
             throw new EmailSendingException("Failed to send email");
         }

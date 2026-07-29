@@ -10,9 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface OwnerVerificationRepository extends JpaRepository<OwnerVerificationEntity,Long> {
-    boolean findByGovernmentIdNumber(String idNumber);
 
-    Optional<UserEntity> findByUser(UserEntity user);
+    Optional<OwnerVerificationEntity> findByUser(UserEntity user);
 
     List<OwnerVerificationEntity> findByVerificationStatus(VerificationStatus verificationStatus);
 }

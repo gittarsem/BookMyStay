@@ -13,7 +13,6 @@ import com.tarsem.BookMyStay.dto.RoomDTO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,16 +31,13 @@ public class RoomServiceImpl implements RoomService {
     private final InventoryService inventoryService;
     private final ModelMapper modelMapper;
     private final HotelElasticRepository elasticRepository;
-
+    private final AuthorizationService authorizationService;
 
 
     @Override
     public RoomDTO addNewRoom(RoomDTO roomDTO, Long hotelId) {
         log.info("Creating a new room in hotel with ID: {}", hotelId);
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-            ()->new ResourceNotFoundException("Hotel with this Id does not exist")
-        );
-        if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         RoomEntity room=modelMapper.map(roomDTO,RoomEntity.class);
         room.setHotel(hotel);
         roomRepo.save(room);
@@ -57,10 +53,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     public List<RoomDTO> giveAllRoomsInHotel(Long hotelId) {
         log.info("Getting all rooms in hotel with ID: {}", hotelId);
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
-        );
-        if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         return hotel.getRooms()
                 .stream()
                 .map((el)-> modelMapper.map(el,RoomDTO.class))
@@ -73,7 +66,7 @@ public class RoomServiceImpl implements RoomService {
         HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
                 ()-> new ResourceNotFoundException("Hotel with this id does not exist")
         );
-        RoomEntity room=roomRepo.findById(roomId).orElseThrow(
+        RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
                 ()-> new ResourceNotFoundException("Room does not exist")
         );
         return modelMapper.map(room,RoomDTO.class);
@@ -83,12 +76,9 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public RoomDTO updateRoomById(Long hotelId, Long roomId, RoomDTO roomDTO) {
         log.info("Updating the room with ID: {}", roomId);
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
-        );
-        if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
-        RoomEntity room=roomRepo.findById(roomId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room with this id does not exist")
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
+        RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
+                ()-> new ResourceNotFoundException("Room does not exist")
         );
         modelMapper.map(roomDTO,room);
         room.setId(roomId);
@@ -104,14 +94,10 @@ public class RoomServiceImpl implements RoomService {
     @Transactional
     public String deleteRoomById(Long hotelId,Long roomId) {
         log.info("Deleting the room with ID: {}", roomId);
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
+        RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
+                ()-> new ResourceNotFoundException("Room does not exist")
         );
-        RoomEntity room=roomRepo.findById(roomId).orElseThrow(
-                () -> new ResourceNotFoundException("Room not found with ID: "+roomId)
-        );
-        if(!verifyHotelOwner(hotel)) throw new UnAuthorisedException("This user does not own this hotel");
-
         Double deletedPrice = room.getPrice().doubleValue();
         Double currentMin = hotel.getMinPrice();
 

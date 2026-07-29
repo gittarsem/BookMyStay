@@ -82,12 +82,19 @@ public class BookingEventConsumer {
 
     @KafkaListener(
             topics = KafkaTopics.BOOKING_EXPIRED,
-            groupId="email-service"
+            groupId = "email-service"
     )
     public void consumeExpiredEvent(BookingExpiredEvent event) {
-        log.info("Received BookingExpiredEvent for booking {}",
-                event.getBookingId());
-        emailService.sendBookingExpirationEmail(event);
+
+        log.info("Received BookingExpiredEvent for booking {}", event.getBookingId());
+
+        try {
+            emailService.sendBookingExpirationEmail(event);
+            log.info("Expiration email sent successfully");
+        } catch (Exception e) {
+            log.error("Failed while processing booking {}", event.getBookingId(), e);
+            throw e; // Important: rethrow so Kafka can retry and send to DLT
+        }
     }
 
 

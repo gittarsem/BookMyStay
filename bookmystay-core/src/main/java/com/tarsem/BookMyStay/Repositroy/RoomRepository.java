@@ -16,7 +16,7 @@ import java.util.Optional;
 @Repository
 public interface RoomRepository extends JpaRepository<RoomEntity,Long> {
 
-    @Query("SELECT MIN(r.Price) FROM RoomEntity r WHERE r.hotel.id = :hotelId")
+    @Query("SELECT MIN(r.price) FROM RoomEntity r WHERE r.hotel.id = :hotelId")
     BigDecimal findMinPriceByHotelId(Long hotelId);
 
     @Query("""
@@ -41,4 +41,6 @@ public interface RoomRepository extends JpaRepository<RoomEntity,Long> {
             @Param("checkOutDate") LocalDate checkOutDate,
             @Param("requiredDays") long requiredDays
     );
+
+    Optional<RoomEntity> findByIdAndHotelId(Long roomId, Long hotelId);
 }

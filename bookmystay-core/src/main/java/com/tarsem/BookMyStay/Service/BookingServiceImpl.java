@@ -7,10 +7,7 @@ import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.Strategy.PricingService;
-import com.tarsem.BookMyStay.dto.BookingCancelDTO;
-import com.tarsem.BookMyStay.dto.BookingDTO;
-import com.tarsem.BookMyStay.dto.BookingRequestDTO;
-import com.tarsem.BookMyStay.dto.GuestDTO;
+import com.tarsem.BookMyStay.dto.*;
 import com.tarsem.BookMyStay.producer.KafkaProducerService;
 import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
 import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
@@ -18,6 +15,7 @@ import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
 import com.tarsem.bookmystay.events.enums.EventType;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.parser.Authorization;
 import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -26,9 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import static co.elastic.clients.elasticsearch.ingest.Processor.Kind.Set;
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
 
 @Service
@@ -44,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private ModelMapper modelMapper;
     private GuestRepository guestRepository;
     private KafkaProducerService kafkaProducerService;
+    private AuthorizationService authorizationService;
     @Override
     @Transactional
     public BookingDTO initializeBooking(BookingRequestDTO bookingRequest) throws RoomNotAvailableException {
@@ -201,6 +204,112 @@ public class BookingServiceImpl implements BookingService {
         kafkaProducerService.publishExpiredBooking(buildBookingExpiredEvent(booking));
     }
 
+    @Override
+    public List<BookingHistoryDTO> getMyBookings() {
+        List<BookingEntity> bookingHistory=bookingRepository.findAllByUserOrderByCreatedAtDesc(giveMeCurrentUser());
+        return bookingHistory.stream().map(
+                this::mapToBookingHistoryDTO
+        ).toList();
+    }
+
+    @Override
+    public BookingDetailsDTO getBookingDetails(Long bookingId) {
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()->new ResourceNotFoundException("Booking does not exist with id:"+bookingId));
+
+        if(!booking.getUser().getId().equals(giveMeCurrentUser().getId())){
+            throw new UnAuthorisedException("User is not allowed to Access this booking");
+        }
+        BookingDetailsDTO details=new BookingDetailsDTO();
+        details.setBookingId(bookingId);
+        details.setHotelName(booking.getHotel().getName());
+        details.setCity(booking.getHotel().getCity());
+        details.setRoomType(booking.getRoom().getRoomType());
+        details.setCheckInDate(booking.getCheckInDate());
+        details.setCheckOutDate(booking.getCheckOutDate());
+        details.setAdultCount(booking.getAdultCount());
+        details.setChildCount(booking.getChildCount());
+        details.setPaymentStatus(booking.getPayment().getPaymentStatus());
+        details.setBookingStatus(booking.getStatus());
+        details.setAmount(booking.getPayment().getAmount());
+
+        Set<GuestDTO> guests = booking.getGuests()
+                .stream()
+                .map(guest -> modelMapper.map(guest, GuestDTO.class))
+                .collect(Collectors.toSet());
+        details.setGuests(guests);
+        return details;
+
+    }
+
+    @Override
+    public List<OwnerBookingDTO> getHotelBookings(
+            Long hotelId,
+            BookingStatus bookingStatus) {
+
+        HotelEntity hotel = authorizationService.getOwnedHotel(hotelId);
+
+        List<BookingEntity> bookings;
+
+        if (bookingStatus == null) {
+            bookings = bookingRepository
+                    .findAllByRoom_HotelOrderByCreatedAtDesc(hotel);
+        } else {
+            bookings = bookingRepository
+                    .findAllByRoom_HotelAndStatusOrderByCreatedAtDesc(
+                            hotel,
+                            bookingStatus
+                    );
+        }
+
+        return bookings.stream()
+                .map(this::mapToOwnerBookingDTO)
+                .toList();
+    }
+
+    @Override
+    public OwnerBookingDetailsDTO getHotelBooking(
+            Long hotelId,
+            Long bookingId) {
+
+        HotelEntity hotel = authorizationService.getOwnedHotel(hotelId);
+
+        BookingEntity booking = bookingRepository
+                .findByIdAndRoom_Hotel(bookingId, hotel)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Booking not found with id : " + bookingId));
+
+        return mapToOwnerBookingDetailsDTO(booking);
+    }
+
+    private BookingHistoryDTO mapToBookingHistoryDTO(BookingEntity booking) {
+
+        BookingHistoryDTO dto = new BookingHistoryDTO();
+
+        dto.setBookingId(booking.getId());
+
+        dto.setHotelId(booking.getRoom().getHotel().getId());
+        dto.setHotelName(booking.getRoom().getHotel().getName());
+        dto.setCity(booking.getRoom().getHotel().getCity());
+
+        dto.setRoomType(booking.getRoom().getRoomType());
+
+        dto.setCheckInDate(booking.getCheckInDate());
+        dto.setCheckOutDate(booking.getCheckOutDate());
+
+        dto.setBookingStatus(booking.getStatus());
+
+        PaymentEntity payment = booking.getPayment();
+
+        if (payment != null) {
+            dto.setPaymentStatus(payment.getPaymentStatus());
+            dto.setAmount(payment.getAmount());
+        }
+
+        return dto;
+    }
+
     private BookingCancelledEvent buildBookingCancelledEvent(BookingEntity booking) {
 
         return BookingCancelledEvent.builder()
@@ -226,6 +335,86 @@ public class BookingServiceImpl implements BookingService {
                 .amountPaid(booking.getPayment().getAmount())
                 .eventType(EventType.BOOKING_EXPIRED)
                 .build();
+    }
+    private OwnerBookingDTO mapToOwnerBookingDTO(BookingEntity booking) {
+
+        OwnerBookingDTO dto = new OwnerBookingDTO();
+
+        dto.setBookingId(booking.getId());
+
+        dto.setGuestName(booking.getUser().getName());
+
+        dto.setRoomType(booking.getRoom().getRoomType());
+
+        dto.setCheckInDate(booking.getCheckInDate());
+        dto.setCheckOutDate(booking.getCheckOutDate());
+
+        dto.setBookingStatus(booking.getStatus());
+
+        dto.setPaymentStatus(
+                booking.getPayment().getPaymentStatus());
+
+        dto.setAmount(
+                booking.getPayment().getAmount());
+
+        return dto;
+    }
+
+    private OwnerBookingDetailsDTO mapToOwnerBookingDetailsDTO(
+            BookingEntity booking) {
+
+        OwnerBookingDetailsDTO dto = new OwnerBookingDetailsDTO();
+
+        dto.setBookingId(booking.getId());
+
+        dto.setGuestName(
+                booking.getUser().getName());
+
+        dto.setEmail(
+                booking.getUser().getEmail());
+
+        dto.setPhone(
+                booking.getHotel().getHotelContactInfo().getPhoneNumber());
+
+        dto.setHotelName(
+                booking.getHotel().getName());
+
+        dto.setCity(
+                booking.getHotel().getCity());
+
+        dto.setRoomType(
+                booking.getRoom().getRoomType());
+
+        dto.setAdultCount(
+                booking.getAdultCount());
+
+        dto.setChildCount(
+                booking.getChildCount());
+
+        dto.setCheckInDate(
+                booking.getCheckInDate());
+
+        dto.setCheckOutDate(
+                booking.getCheckOutDate());
+
+        dto.setBookingStatus(
+                booking.getStatus());
+
+        dto.setPaymentStatus(
+                booking.getPayment().getPaymentStatus());
+
+        dto.setAmount(
+                booking.getPayment().getAmount());
+
+        dto.setGuests(
+                booking.getGuests()
+                        .stream()
+                        .map(guest ->
+                                modelMapper.map(guest, GuestDTO.class))
+                        .collect(Collectors.toSet())
+        );
+
+        return dto;
     }
 
 }

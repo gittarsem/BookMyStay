@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
 import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
+import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
 import com.tarsem.bookmystay.events.enums.EventType;
 import lombok.Builder;
 import lombok.Data;
@@ -25,6 +26,7 @@ import java.util.UUID;
 @JsonSubTypes({
         @JsonSubTypes.Type(value = BookingConfirmedEvent.class, name = "BOOKING_CONFIRMED"),
         @JsonSubTypes.Type(value = BookingCancelledEvent.class, name = "BOOKING_CANCELLED"),
+        @JsonSubTypes.Type(value = BookingExpiredEvent.class, name = "BOOKING_EXPIRED"),
 })
 public abstract class BaseEvent {
 

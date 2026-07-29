@@ -3,6 +3,7 @@ package com.tarsem.BookMyStay.Controller;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.dto.HotelInfoDTO;
+import com.tarsem.BookMyStay.dto.HotelResponseDTO;
 import com.tarsem.BookMyStay.dto.HotelSearchResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/hotels")
@@ -43,6 +45,12 @@ public class HotelBrowseController {
             @RequestParam(defaultValue = "10") int size
     ) throws IOException {
         return ResponseEntity.ok(inventoryService.searchHotels(keyword,city,minPrice,maxPrice,ratings,sortField,sortOrder,page,size));
+    }
+
+    @GetMapping
+    @Operation(summary = "Get all hotels", description = "Fetch all hotels")
+    public ResponseEntity<List<HotelResponseDTO>> getAllHotels(){
+        return ResponseEntity.ok(hotelService.getAllHotel());
     }
 
 }

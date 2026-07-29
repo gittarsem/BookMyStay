@@ -15,10 +15,10 @@ import java.util.List;
 
 @RestController
 @Slf4j
-@RequestMapping("admin/{hotelId}/rooms")
+@RequestMapping("/owner/{hotelId}/rooms")
 @SecurityRequirement(name = "BearerAuth")
 @Tag(name = "Room Admin Management", description = "Admin Manage rooms/hotels/inventories in a hotel")
-public class RoomAdminController {
+public class RoomOwnerController {
 
     @Autowired
     private RoomService roomService;

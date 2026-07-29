@@ -13,8 +13,8 @@ import java.util.List;
 
 @RestController
 @Slf4j
-@RequestMapping("/admin/inventory")
-@Tag(name = "Admin Inventory", description = "Manage hotel room inventory")
+@RequestMapping("/owner/inventory")
+@Tag(name = "Owner Inventory", description = "Manage hotel room inventory")
 public class InventoryController {
 
     @Autowired

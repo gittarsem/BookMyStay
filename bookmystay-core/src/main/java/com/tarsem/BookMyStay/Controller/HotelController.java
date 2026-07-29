@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @Slf4j
 @SecurityRequirement(name = "BearerAuth")
-@RequestMapping("/admin/hotel")
+@RequestMapping("/owner/hotel")
 @Tag(name = "Hotel Management", description = "Manage hotel details")
 public class HotelController {
 
@@ -53,16 +53,16 @@ public class HotelController {
     }
 
 
-    @GetMapping
-    @Operation(summary = "Get all hotels", description = "Fetch all hotels")
-    public ResponseEntity<List<HotelResponseDTO>> getAllHotels(){
-        return ResponseEntity.ok(hotelService.getAllHotel());
-    }
-
     @PatchMapping("/{hotelId}/activate")
     @Operation(summary = "Activate a hotel", description = "Marks a hotel as active")
     public ResponseEntity<String> activateHotel(@PathVariable Long hotelId){
         return ResponseEntity.ok(hotelService.activateHotelById(hotelId));
     }
+
+    @GetMapping
+    public ResponseEntity<List<HotelResponseDTO>> getMyHotels(){
+        return ResponseEntity.ok(hotelService.getMyHotels());
+    }
+
 
 }

@@ -23,6 +23,7 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.*;
@@ -36,7 +37,7 @@ public class HotelServiceImpl implements HotelService {
      private final InventoryService inventoryService;
      private final ModelMapper modelMapper;
      private final HotelElasticRepository elasticRepository;
-
+    private final AuthorizationService authorizationService;
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_search", allEntries = true),
@@ -56,18 +57,13 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Cacheable(value = "hotels", key = "#hotelId")
-    public HotelResponseDTO getHotel(Long hotelId) {
+    public HotelResponseDTO getHotel(Long hotelId) throws UnAuthorisedException {
         log.info("Getting the hotel with ID: {}",hotelId);
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()->new ResourceNotFoundException("Hotel with this id not exists")
-        );
-        UserEntity user=giveMeCurrentUser();
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
-        }
-
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         return modelMapper.map(hotel,HotelResponseDTO.class);
     }
+
+
 
     @Override
     @Transactional
@@ -75,18 +71,11 @@ public class HotelServiceImpl implements HotelService {
             @CacheEvict(value = "hotels", key = "#id"),
             @CacheEvict(value = "hotel_search", allEntries = true)
     })
-    public HotelResponseDTO updateHotelById(HotelRequestDTO hotelRequestDTO, Long id) {
-        log.info("Updating the hotel with ID: {}", id);
-
-        UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel= hotelRepository.findById(id).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel does not exist")
-        );
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id: "+id);
-        }
+    public HotelResponseDTO updateHotelById(HotelRequestDTO hotelRequestDTO, Long hotelId) {
+        log.info("Updating the hotel with ID: {}", hotelId);
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         modelMapper.map(hotelRequestDTO,hotel);
-        hotel.setId(id);
+        hotel.setId(hotelId);
         hotelRepository.save(hotel);
         elasticRepository.save(mapToDocument(hotel));
         return modelMapper.map(hotel,HotelResponseDTO.class);
@@ -102,14 +91,7 @@ public class HotelServiceImpl implements HotelService {
     })
     public @Nullable String deleteHotelById(Long hotelId) {
         log.info("Deleting the hotel with ID: {}", hotelId);
-
-        UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                        ()-> new ResourceNotFoundException("Hotel does not exist")
-                );
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
-        }
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         hotelRepository.deleteById(hotelId);
         elasticRepository.deleteById(hotelId.toString());
         return "Deleted Successfully";
@@ -140,13 +122,7 @@ public class HotelServiceImpl implements HotelService {
     })
     public String activateHotelById(Long hotelId) {
         log.info("Activating hotel with ID: {}", hotelId);
-        UserEntity user=giveMeCurrentUser();
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()->new ResourceNotFoundException("Hotel does not exist")
-        );
-        if(!user.equals(hotel.getOwner())){
-            throw new UnAuthorisedException("This user does not own this hotel with id: "+hotelId);
-        }
+        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         for(RoomEntity room: hotel.getRooms()){
             inventoryService.initializeRoom(room);
         }
@@ -172,5 +148,13 @@ public class HotelServiceImpl implements HotelService {
                 )
                 .toList();
         return new HotelInfoDTO(modelMapper.map(hotel,HotelResponseDTO.class),roomsList);
+    }
+
+    @Override
+    public List<HotelResponseDTO> getMyHotels() {
+        List<HotelEntity> hotels=hotelRepository.findAllByOwner(giveMeCurrentUser());
+        return hotels.stream().map(
+                (hotel)->modelMapper.map(hotel,HotelResponseDTO.class)
+        ).toList();
     }
 }

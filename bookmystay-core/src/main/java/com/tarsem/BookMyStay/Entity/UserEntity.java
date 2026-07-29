@@ -36,7 +36,6 @@ public class UserEntity {
             name = "user_entity_role",
             joinColumns = @JoinColumn(name = "user_id")
     )
-    @OnDelete(action = OnDeleteAction.CASCADE)
     @Enumerated(EnumType.STRING)
     private Set<Role> roles=new HashSet<>();
 

@@ -15,7 +15,7 @@ public class UserDTO {
     private Long id;
     private String name;
     private String email;
-    private Set<Role> role;
+    private Set<Role> roles;
     private LocalDateTime created_at;
 
 }

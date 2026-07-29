@@ -9,4 +9,5 @@ import java.util.List;
 public interface HotelRepository extends JpaRepository<HotelEntity, Long> {
 
     List<HotelEntity> findByOwner(UserEntity user);
+    List<HotelEntity> findAllByOwner(UserEntity owner);
 }

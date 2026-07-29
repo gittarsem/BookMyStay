@@ -2,10 +2,7 @@ package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
-import com.tarsem.BookMyStay.dto.BookingCancelDTO;
-import com.tarsem.BookMyStay.dto.BookingDTO;
-import com.tarsem.BookMyStay.dto.BookingRequestDTO;
-import com.tarsem.BookMyStay.dto.GuestDTO;
+import com.tarsem.BookMyStay.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/bookings")
+@RequestMapping("/guest/bookings")
 @RequiredArgsConstructor
 public class HotelBookingController {
 
@@ -36,5 +33,15 @@ public class HotelBookingController {
     @PostMapping("/cancel/{bookingId}")
     public ResponseEntity<BookingCancelDTO> cancelBooking(@PathVariable Long bookingId){
         return ResponseEntity.ok(bookingService.cancelBooking(bookingId));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<BookingHistoryDTO>> getMyBookings(){
+        return ResponseEntity.ok(bookingService.getMyBookings());
+    }
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<BookingDetailsDTO> getBookingDetails(@PathVariable Long bookingId){
+        return ResponseEntity.ok(bookingService.getBookingDetails(bookingId));
     }
 }
