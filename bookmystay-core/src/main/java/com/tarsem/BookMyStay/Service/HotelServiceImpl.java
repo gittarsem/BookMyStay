@@ -3,6 +3,7 @@ package com.tarsem.BookMyStay.Service;
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
+import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
@@ -138,7 +139,7 @@ public class HotelServiceImpl implements HotelService {
     @Cacheable(value = "hotels", key = "#hotelId")
     public HotelInfoDTO findHotelById(Long hotelId) {
         HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
+                ()-> new HotelNotFoundException("Hotel with this id does not exist")
         );
         List<RoomDTO> roomsList=hotel.getRooms()
                 .stream()

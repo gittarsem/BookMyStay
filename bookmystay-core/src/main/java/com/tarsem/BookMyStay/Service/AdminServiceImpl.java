@@ -4,6 +4,7 @@ import com.tarsem.BookMyStay.Entity.OwnerVerificationEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Enums.Role;
 import com.tarsem.BookMyStay.Enums.VerificationStatus;
+import com.tarsem.BookMyStay.Exceptions.BusinessRuleViolationException;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.OwnerVerificationRepository;
 import com.tarsem.BookMyStay.Repositroy.UserRepository;
@@ -13,6 +14,7 @@ import com.tarsem.BookMyStay.dto.RejectionRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,7 +36,7 @@ public class AdminServiceImpl implements AdminService {
                         new ResourceNotFoundException("User not found with id: " + userId));
 
         if (user.getRoles().contains(Role.ROLE_OWNER)) {
-            throw new IllegalStateException("User is already an owner.");
+            throw new BusinessRuleViolationException("User is already an owner.");
         }
 
         user.getRoles().add(Role.ROLE_OWNER);
@@ -71,13 +73,14 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
+    @Transactional
     public void approveApplication(Long verificationId) {
         OwnerVerificationEntity verificationEntity=verificationRepository.findById(verificationId).orElseThrow(
                 ()-> new ResourceNotFoundException("Verification request not found.")
         );
 
         if(verificationEntity.getVerificationStatus()!=VerificationStatus.PENDING){
-            throw new IllegalStateException(
+            throw new BusinessRuleViolationException(
                     "Only pending applications can be approved.");
         }
 
@@ -95,10 +98,10 @@ public class AdminServiceImpl implements AdminService {
         );
 
         if(verificationEntity.getVerificationStatus()!=VerificationStatus.PENDING){
-            throw new IllegalStateException(
+            throw new BusinessRuleViolationException(
                     "Only pending applications can be approved.");
         }
-        approveOwner(verificationEntity.getUser().getId());
+
         verificationEntity.setVerificationStatus(VerificationStatus.REJECTED);
         verificationEntity.setReviewedBy(giveMeCurrentUser());
         verificationEntity.setReviewedAt(LocalDateTime.now());

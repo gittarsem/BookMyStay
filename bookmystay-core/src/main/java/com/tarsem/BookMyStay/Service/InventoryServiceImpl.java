@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.tarsem.BookMyStay.Exceptions.RoomNotFoundException;
 import com.tarsem.BookMyStay.document.HotelDocument;
 import com.tarsem.BookMyStay.dto.HotelSearchResponseDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
@@ -197,7 +198,7 @@ public class InventoryServiceImpl implements InventoryService {
     public List<InventoryDTO> getAllInventoryByRoom(Long roomId) {
         log.info("Getting All inventory by room for room with id: {}", roomId);
         RoomEntity room=roomRepo.findById(roomId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room with id "+roomId+" does not exist")
+                ()-> new RoomNotFoundException("Room with id "+roomId+" does not exist")
         );
 
         if(!verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);
@@ -215,7 +216,7 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Updating All inventory by room for room with id: {} between date range: {} - {}", roomId,
                 inventoryUpdateRequest.getStartDate(),inventoryUpdateRequest.getEndDate());
         RoomEntity room=roomRepo.findById(roomId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room with id "+roomId+" does not exist")
+                ()-> new RoomNotFoundException("Room with id "+roomId+" does not exist")
         );
 
         if(!verifyHotelOwner(room.getHotel())) throw new AccessDeniedException("You are not the owner of room with id: "+roomId);

@@ -9,6 +9,7 @@ import com.tarsem.BookMyStay.Entity.PaymentEntity;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentGateway;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
+import com.tarsem.BookMyStay.Exceptions.BookingNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.PaymentException;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.BookingRepository;
@@ -57,7 +58,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequest createOrderRequest) throws RazorpayException {
         BookingEntity booking=bookingRepository.findById(createOrderRequest.getBookingId()).orElseThrow(
-                ()-> new ResourceNotFoundException("Booking with this id:"+createOrderRequest.getBookingId()+"not found")
+                ()-> new BookingNotFoundException("Booking with this id:"+createOrderRequest.getBookingId()+"not found")
         );
 
         PaymentEntity payment=booking.getPayment();
@@ -107,7 +108,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         PaymentEntity payment=paymentRepository.findByGatewayOrderId(request.getOrderId()).orElseThrow(
 
-                ()->new ResourceNotFoundException("Payment Not Found")
+                ()->new PaymentException("Payment Not Found")
         );
 
         BookingEntity booking=payment.getBooking();
@@ -228,7 +229,7 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentEntity payment = paymentRepository
                 .findByGatewayOrderId(orderId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Payment not found"));
+                        new PaymentException("Payment not found"));
 
         BookingEntity booking = payment.getBooking();
         if (booking.getStatus() != BookingStatus.PAYMENT_PENDING ||
@@ -257,7 +258,7 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentEntity payment = paymentRepository
                 .findByGatewayOrderId(orderId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Payment not found"));
+                        new PaymentException("Payment not found"));
 
         if (payment.getPaymentStatus() != PaymentStatus.PENDING) {
             return;

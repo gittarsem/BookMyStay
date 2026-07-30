@@ -54,7 +54,7 @@ public class BookingServiceImpl implements BookingService {
                 bookingRequest.getRoomType(), bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
 
         HotelEntity hotel=hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel does not exist with this ID: "+bookingRequest.getHotelId())
+                ()-> new HotelNotFoundException("Hotel does not exist with this ID: "+bookingRequest.getHotelId())
         );
 
         int totalCapReq=bookingRequest.getAdultCount()+bookingRequest.getChildCount();
@@ -109,7 +109,7 @@ public class BookingServiceImpl implements BookingService {
     public @Nullable BookingDTO addGuests(Long bookingId, List<GuestDTO> guests) {
         log.info("Adding guests for booking with id: {}", bookingId);
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()-> new ResourceNotFoundException("Booking not found with this id: "+bookingId)
+                ()-> new BookingNotFoundException("Booking not found with this id: "+bookingId)
         );
         UserEntity user=giveMeCurrentUser();
 
@@ -127,7 +127,7 @@ public class BookingServiceImpl implements BookingService {
 
         int guestsCount=booking.getAdultCount()+booking.getChildCount();
         if(guests.size()>guestsCount){
-            throw new IllegalArgumentException(
+            throw new BusinessRuleViolationException(
                     "Expected " + guestsCount + " guests but received " + guests.size()
             );
         }
@@ -149,7 +149,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Releasing inventory for booking : {}",bookingId);
 
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()-> new ResourceNotFoundException("Booking does not exist with this ID: "+bookingId)
+                ()-> new BookingNotFoundException("Booking does not exist with this ID: "+bookingId)
         );
 
         inventoryRepository.releaseReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
@@ -161,7 +161,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Confirming inventory for booking : {}",bookingId);
 
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()-> new ResourceNotFoundException("Booking does not exist with this ID: "+bookingId)
+                ()-> new BookingNotFoundException("Booking does not exist with this ID: "+bookingId)
         );
 
         inventoryRepository.confirmReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
@@ -171,13 +171,13 @@ public class BookingServiceImpl implements BookingService {
     public BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException {
         log.info("Cancel request for booking : {}",bookingId);
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()->new ResourceNotFoundException("Booking does not exist for id :" + bookingId)
+                ()->new BookingNotFoundException("Booking does not exist for id :" + bookingId)
         );
         if(!booking.getUser().equals(giveMeCurrentUser())){
             throw new UnAuthorisedException("You are not authorised to cancel this booking");
         }
         if(booking.getStatus()!=BookingStatus.BOOKED){
-            throw new IllegalStateException("Booking for this id is not booked or payment is pending");
+            throw new BusinessRuleViolationException("Booking for this id is not booked or payment is pending");
         }
         inventoryRepository.cancelBooking(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
 
@@ -215,7 +215,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingDetailsDTO getBookingDetails(Long bookingId) {
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()->new ResourceNotFoundException("Booking does not exist with id:"+bookingId));
+                ()->new BookingNotFoundException("Booking does not exist with id:"+bookingId));
 
         if(!booking.getUser().getId().equals(giveMeCurrentUser().getId())){
             throw new UnAuthorisedException("User is not allowed to Access this booking");
@@ -277,7 +277,7 @@ public class BookingServiceImpl implements BookingService {
         BookingEntity booking = bookingRepository
                 .findByIdAndRoom_Hotel(bookingId, hotel)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException(
+                        new BookingNotFoundException(
                                 "Booking not found with id : " + bookingId));
 
         return mapToOwnerBookingDetailsDTO(booking);

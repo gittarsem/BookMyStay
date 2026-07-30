@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Config;
 
 
+import com.tarsem.BookMyStay.Security.CustomAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,9 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
@@ -39,6 +43,8 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
+
+
                         .requestMatchers(
                                 "/auth/**",
                                 "/hotels/search/**",
@@ -51,8 +57,14 @@ public class SecurityConfig {
                                 "/admin/**"
                         )
                         .hasRole("ADMIN")
-
+                        .requestMatchers("/guest/**").hasRole("GUEST")
+                        .requestMatchers("/owner/**").hasRole("OWNER")
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(
+                        exception->exception.authenticationEntryPoint(
+                                customAuthenticationEntryPoint
+                        )
                 )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)

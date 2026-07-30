@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
+import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
@@ -20,7 +21,7 @@ public class AuthorizationService {
 
         HotelEntity hotel = hotelRepository.findById(hotelId)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Hotel not found."));
+                        new HotelNotFoundException("Hotel not found."));
 
         UserEntity currentUser = giveMeCurrentUser();
 

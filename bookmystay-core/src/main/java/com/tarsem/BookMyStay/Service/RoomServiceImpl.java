@@ -2,7 +2,9 @@ package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
+import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
+import com.tarsem.BookMyStay.Exceptions.RoomNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
@@ -64,10 +66,10 @@ public class RoomServiceImpl implements RoomService {
     public RoomDTO getRoomById(Long hotelId, Long roomId) {
         log.info("Getting the room with ID: {}", roomId);
         HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Hotel with this id does not exist")
+                ()-> new HotelNotFoundException("Hotel with this id does not exist")
         );
         RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room does not exist")
+                ()-> new RoomNotFoundException("Room does not exist")
         );
         return modelMapper.map(room,RoomDTO.class);
     }
@@ -78,7 +80,7 @@ public class RoomServiceImpl implements RoomService {
         log.info("Updating the room with ID: {}", roomId);
         HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room does not exist")
+                ()-> new RoomNotFoundException("Room does not exist")
         );
         modelMapper.map(roomDTO,room);
         room.setId(roomId);
@@ -96,7 +98,7 @@ public class RoomServiceImpl implements RoomService {
         log.info("Deleting the room with ID: {}", roomId);
         HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
         RoomEntity room=roomRepo.findByIdAndHotelId(roomId,hotelId).orElseThrow(
-                ()-> new ResourceNotFoundException("Room does not exist")
+                ()-> new RoomNotFoundException("Room does not exist")
         );
         Double deletedPrice = room.getPrice().doubleValue();
         Double currentMin = hotel.getMinPrice();
