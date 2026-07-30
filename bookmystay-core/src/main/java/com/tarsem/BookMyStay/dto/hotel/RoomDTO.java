@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.hotel;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

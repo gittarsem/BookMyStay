@@ -2,8 +2,8 @@ package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
-import com.tarsem.BookMyStay.dto.OwnerBookingDTO;
-import com.tarsem.BookMyStay.dto.OwnerBookingDetailsDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

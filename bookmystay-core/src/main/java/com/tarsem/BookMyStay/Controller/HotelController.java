@@ -1,8 +1,8 @@
 package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
-import com.tarsem.BookMyStay.dto.HotelRequestDTO;
-import com.tarsem.BookMyStay.dto.HotelResponseDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;

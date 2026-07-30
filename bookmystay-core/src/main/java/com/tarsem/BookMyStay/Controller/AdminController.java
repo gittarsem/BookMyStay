@@ -1,7 +1,6 @@
 package com.tarsem.BookMyStay.Controller;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import com.tarsem.BookMyStay.Entity.OwnerVerificationEntity;
 import com.tarsem.BookMyStay.Enums.VerificationStatus;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
@@ -9,7 +8,8 @@ import com.tarsem.BookMyStay.Repositroy.UserRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.AdminService;
 import com.tarsem.BookMyStay.Utils.AppUtils;
 import com.tarsem.BookMyStay.document.HotelDocument;
-import com.tarsem.BookMyStay.dto.OwnerVerificationResponseDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerVerificationResponseDTO;
+import com.tarsem.BookMyStay.dto.owner.RejectionRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -57,7 +57,7 @@ public class AdminController {
     @PutMapping("/owner-verifications/{verificationId}/reject")
     public ResponseEntity<String> rejectApplication(
             @PathVariable Long verificationId,
-            @Valid @RequestBody com.tarsem.BookMyStay.dto.RejectionRequestDTO request) {
+            @Valid @RequestBody RejectionRequestDTO request) {
 
         adminService.rejectApplication(verificationId, request);
 

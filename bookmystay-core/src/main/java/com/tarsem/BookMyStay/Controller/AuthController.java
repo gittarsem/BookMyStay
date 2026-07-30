@@ -1,9 +1,9 @@
 package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Security.AuthService;
-import com.tarsem.BookMyStay.dto.LoginRequestDTO;
-import com.tarsem.BookMyStay.dto.LoginResponseDTO;
-import com.tarsem.BookMyStay.dto.SignUpRequestDTO;
+import com.tarsem.BookMyStay.dto.login.LoginRequestDTO;
+import com.tarsem.BookMyStay.dto.login.LoginResponseDTO;
+import com.tarsem.BookMyStay.dto.login.SignUpRequestDTO;
 import com.tarsem.BookMyStay.dto.UserDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;

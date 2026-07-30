@@ -2,14 +2,13 @@ package com.tarsem.BookMyStay.Repositroy;
 
 import com.tarsem.BookMyStay.Entity.InventoryEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
-import com.tarsem.BookMyStay.dto.InventoryDTO;
+import com.tarsem.BookMyStay.dto.inventory.InventoryDTO;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.security.core.parameters.P;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;

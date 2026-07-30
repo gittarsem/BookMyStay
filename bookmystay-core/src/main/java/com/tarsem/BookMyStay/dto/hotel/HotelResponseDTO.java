@@ -1,13 +1,13 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.hotel;
 
 import com.tarsem.BookMyStay.Entity.HotelContactInfo;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
-@AllArgsConstructor
-public class HotelRequestDTO {
+public class HotelResponseDTO {
+    private Long id;
     private String name;
     private String city;
     private HotelContactInfo hotelContactInfo;
+    private boolean active;
 }

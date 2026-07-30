@@ -1,12 +1,10 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
-import com.tarsem.BookMyStay.dto.HotelSearchResponseDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelSearchResponseDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
-import com.tarsem.BookMyStay.dto.HotelSearchRequest;
-import com.tarsem.BookMyStay.dto.InventoryDTO;
-import com.tarsem.BookMyStay.dto.InventoryUpdateRequest;
+import com.tarsem.BookMyStay.dto.inventory.InventoryDTO;
+import com.tarsem.BookMyStay.dto.inventory.InventoryUpdateRequest;
 import org.jspecify.annotations.Nullable;
-import org.springframework.data.domain.Page;
 
 import java.io.IOException;
 import java.util.List;

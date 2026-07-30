@@ -1,7 +1,6 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
-import com.tarsem.BookMyStay.dto.RoomDTO;
-import org.jspecify.annotations.Nullable;
+import com.tarsem.BookMyStay.dto.hotel.RoomDTO;
 
 import java.util.List;
 

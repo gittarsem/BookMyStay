@@ -4,16 +4,15 @@ import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
-import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
-import com.tarsem.BookMyStay.dto.HotelInfoDTO;
-import com.tarsem.BookMyStay.dto.HotelRequestDTO;
-import com.tarsem.BookMyStay.dto.HotelResponseDTO;
-import com.tarsem.BookMyStay.dto.RoomDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelInfoDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
+import com.tarsem.BookMyStay.dto.hotel.RoomDTO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -24,7 +23,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.*;

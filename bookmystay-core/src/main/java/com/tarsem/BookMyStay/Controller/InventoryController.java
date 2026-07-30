@@ -1,8 +1,8 @@
 package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
-import com.tarsem.BookMyStay.dto.InventoryDTO;
-import com.tarsem.BookMyStay.dto.InventoryUpdateRequest;
+import com.tarsem.BookMyStay.dto.inventory.InventoryDTO;
+import com.tarsem.BookMyStay.dto.inventory.InventoryUpdateRequest;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,12 +1,10 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
-import com.tarsem.BookMyStay.dto.HotelInfoDTO;
-import com.tarsem.BookMyStay.dto.HotelRequestDTO;
-import com.tarsem.BookMyStay.dto.HotelResponseDTO;
-import org.jspecify.annotations.Nullable;
+import com.tarsem.BookMyStay.dto.hotel.HotelInfoDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
+import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
 
-import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface HotelService {

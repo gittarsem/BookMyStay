@@ -1,30 +1,38 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.owner;
 
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
 import com.tarsem.BookMyStay.Enums.RoomType;
+import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
-@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class BookingHistoryDTO {
+public class OwnerBookingDetailsDTO {
     Long bookingId;
 
-    Long hotelId;
+    String guestName;
+
+    String email;
+
+    String phone;
 
     String hotelName;
 
     String city;
 
     RoomType roomType;
+
+    Integer adultCount;
+
+    Integer childCount;
 
     LocalDate checkInDate;
 
@@ -35,4 +43,6 @@ public class BookingHistoryDTO {
     PaymentStatus paymentStatus;
 
     BigDecimal amount;
+
+    Set<GuestDTO> guests;
 }

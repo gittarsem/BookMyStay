@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.owner;
 
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
@@ -9,29 +9,16 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Set;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class OwnerBookingDetailsDTO {
+public class OwnerBookingDTO {
     Long bookingId;
 
     String guestName;
 
-    String email;
-
-    String phone;
-
-    String hotelName;
-
-    String city;
-
     RoomType roomType;
-
-    Integer adultCount;
-
-    Integer childCount;
 
     LocalDate checkInDate;
 
@@ -42,6 +29,4 @@ public class OwnerBookingDetailsDTO {
     PaymentStatus paymentStatus;
 
     BigDecimal amount;
-
-    Set<GuestDTO> guests;
 }

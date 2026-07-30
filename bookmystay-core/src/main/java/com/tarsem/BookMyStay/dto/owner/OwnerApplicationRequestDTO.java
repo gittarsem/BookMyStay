@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.owner;
 
 import com.tarsem.BookMyStay.Enums.GovernmentIdType;
 import jakarta.validation.constraints.NotBlank;

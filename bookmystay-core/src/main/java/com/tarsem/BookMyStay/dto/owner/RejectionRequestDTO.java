@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.owner;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

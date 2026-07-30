@@ -2,7 +2,8 @@ package com.tarsem.BookMyStay.Controller;
 
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
-import com.tarsem.BookMyStay.dto.*;
+import com.tarsem.BookMyStay.dto.booking.*;
+import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;

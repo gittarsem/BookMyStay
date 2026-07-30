@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.booking;
 
 import com.tarsem.BookMyStay.Enums.RoomType;
 import lombok.Data;

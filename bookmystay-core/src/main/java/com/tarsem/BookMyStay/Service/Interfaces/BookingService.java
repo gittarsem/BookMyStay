@@ -1,10 +1,12 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
 import com.tarsem.BookMyStay.Entity.BookingEntity;
-import com.tarsem.BookMyStay.Entity.PaymentEntity;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
-import com.tarsem.BookMyStay.dto.*;
+import com.tarsem.BookMyStay.dto.booking.*;
+import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;

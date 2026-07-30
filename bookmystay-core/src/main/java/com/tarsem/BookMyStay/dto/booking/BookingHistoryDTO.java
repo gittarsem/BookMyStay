@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.dto;
+package com.tarsem.BookMyStay.dto.booking;
 
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
@@ -6,17 +6,23 @@ import com.tarsem.BookMyStay.Enums.RoomType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OwnerBookingDTO {
+public class BookingHistoryDTO {
     Long bookingId;
 
-    String guestName;
+    Long hotelId;
+
+    String hotelName;
+
+    String city;
 
     RoomType roomType;
 

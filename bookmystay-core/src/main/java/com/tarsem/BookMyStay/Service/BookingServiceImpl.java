@@ -7,15 +7,16 @@ import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.Strategy.PricingService;
-import com.tarsem.BookMyStay.dto.*;
+import com.tarsem.BookMyStay.dto.booking.*;
+import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
+import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
 import com.tarsem.BookMyStay.producer.KafkaProducerService;
 import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
-import com.tarsem.bookmystay.events.booking.BookingConfirmedEvent;
 import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
 import com.tarsem.bookmystay.events.enums.EventType;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.tomcat.util.http.parser.Authorization;
 import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -24,13 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static co.elastic.clients.elasticsearch.ingest.Processor.Kind.Set;
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
 
 @Service

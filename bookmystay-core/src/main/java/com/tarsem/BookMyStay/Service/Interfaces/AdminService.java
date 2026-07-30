@@ -1,10 +1,9 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
 
-import com.tarsem.BookMyStay.Entity.OwnerVerificationEntity;
 import com.tarsem.BookMyStay.Enums.VerificationStatus;
-import com.tarsem.BookMyStay.dto.OwnerVerificationResponseDTO;
-import jakarta.validation.Valid;
+import com.tarsem.BookMyStay.dto.owner.OwnerVerificationResponseDTO;
+import com.tarsem.BookMyStay.dto.owner.RejectionRequestDTO;
 
 import java.util.List;
 
@@ -16,5 +15,5 @@ public interface AdminService {
     void approveApplication(Long verificationId);
 
 
-    void rejectApplication(Long verificationId, com.tarsem.BookMyStay.dto.RejectionRequestDTO request);
+    void rejectApplication(Long verificationId, RejectionRequestDTO request);
 }
