@@ -1,10 +1,11 @@
 package com.tarsem.BookMyStay.Entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -12,26 +13,43 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name="reviews")
+@Table(
+        name="reviews",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "booking_id")
+        }
+)
+@Builder
 public class ReviewEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private UserEntity user;
+    @Min(1)
+    @Max(5)
+    @Column(nullable = false)
+    private Integer rating;
 
-    @ManyToOne
-    @JoinColumn(name="hotel_id")
-    private HotelEntity hotel;
-
-    @Column()
-    private int rating;
-
+    @Column(nullable = false, length = 1000)
     private String comment;
 
     @CreationTimestamp
-    @Column(updatable = false)
-    private LocalDateTime created_at;
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "guest_id")
+    private UserEntity guest;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "hotel_id")
+    private HotelEntity hotel;
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "booking_id", unique = true)
+    private BookingEntity booking;
 }

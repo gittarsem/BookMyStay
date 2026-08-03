@@ -29,7 +29,7 @@ public class AppUtils
         document.setPrice(getMinPriceRoom(hotel));
 
         document.setRatings(
-                hotel.getRatings() != null ? hotel.getRatings() : BigDecimal.ZERO
+                hotel.getAverageRating()!= null ? hotel.getAverageRating(): 0.0
         );
 
         document.setActive(hotel.getActive());

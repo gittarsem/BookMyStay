@@ -32,7 +32,7 @@ public class HotelDocument {
     private Double price;
 
     @Field(type=FieldType.Double)
-    private BigDecimal ratings;
+    private Double ratings;
 
     @Field(type = FieldType.Boolean)
     private Boolean active;

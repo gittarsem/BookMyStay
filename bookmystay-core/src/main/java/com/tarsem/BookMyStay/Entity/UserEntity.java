@@ -9,7 +9,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
@@ -38,6 +40,9 @@ public class UserEntity {
     )
     @Enumerated(EnumType.STRING)
     private Set<Role> roles=new HashSet<>();
+
+    @OneToMany(mappedBy = "guest")
+    private List<ReviewEntity> reviews = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false)

@@ -75,4 +75,11 @@ public class BookingEntity {
 
     @OneToOne(mappedBy = "booking", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private PaymentEntity payment;
+
+    @OneToOne(
+            mappedBy = "booking",
+            cascade = CascadeType.ALL,
+            fetch = FetchType.LAZY
+    )
+    private ReviewEntity review;
 }

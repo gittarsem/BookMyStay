@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -32,9 +33,6 @@ public class HotelEntity {
     @Column(name = "location")
     private String city;
 
-    @Column(nullable = false,precision = 10,scale = 2)
-    private BigDecimal ratings;
-
     @Column(name="min_price")
     private Double minPrice;
 
@@ -54,4 +52,17 @@ public class HotelEntity {
 
     @ManyToOne(optional = false)
     private UserEntity owner;
+
+    @Column(nullable = false)
+    private Double averageRating = 0.0;
+
+    @Column(nullable = false)
+    private Integer totalReviews = 0;
+
+    @OneToMany(
+            mappedBy = "hotel",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<ReviewEntity> reviews = new ArrayList<>();
 }
