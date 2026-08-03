@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Controller;
 
+import com.razorpay.RazorpayException;
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.dto.booking.*;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 @RestController
@@ -32,7 +34,7 @@ public class HotelBookingController {
     }
 
     @PostMapping("/cancel/{bookingId}")
-    public ResponseEntity<BookingCancelDTO> cancelBooking(@PathVariable Long bookingId){
+    public ResponseEntity<BookingCancelDTO> cancelBooking(@PathVariable Long bookingId) throws AccessDeniedException, RazorpayException {
         return ResponseEntity.ok(bookingService.cancelBooking(bookingId));
     }
 

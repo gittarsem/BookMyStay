@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Service.Interfaces;
 
+import com.razorpay.RazorpayException;
 import com.tarsem.BookMyStay.Entity.BookingEntity;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Exceptions.RoomNotAvailableException;
@@ -9,6 +10,7 @@ import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
 import org.jspecify.annotations.Nullable;
 
+import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface BookingService {
@@ -21,7 +23,7 @@ public interface BookingService {
 
     public void confirmInventory(Long bookingId);
 
-    BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException;
+    BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException, AccessDeniedException, RazorpayException;
 
     public void expireBooking(BookingEntity booking);
 

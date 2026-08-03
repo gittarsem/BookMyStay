@@ -11,7 +11,6 @@ import com.tarsem.BookMyStay.Enums.PaymentGateway;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
 import com.tarsem.BookMyStay.Exceptions.BookingNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.PaymentException;
-import com.tarsem.BookMyStay.Exceptions.ResourceNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.BookingRepository;
 import com.tarsem.BookMyStay.Repositroy.PaymentRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
@@ -34,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -137,6 +135,25 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment currPayment=razorpayClient.payments.fetch(request.getPaymentId());
         String paymentStatus=currPayment.get("status");
+
+        BigDecimal amount = new BigDecimal(currPayment.get("amount").toString())
+                .divide(BigDecimal.valueOf(100));
+
+        BigDecimal gatewayFee = new BigDecimal(currPayment.get("fee").toString())
+                .divide(BigDecimal.valueOf(100));
+
+        BigDecimal gatewayTax = new BigDecimal(currPayment.get("tax").toString())
+                .divide(BigDecimal.valueOf(100));
+
+        BigDecimal refundableAmount = amount
+                .subtract(gatewayFee)
+                .subtract(gatewayTax);
+
+        payment.setAmount(amount);
+        payment.setGatewayFee(gatewayFee);
+        payment.setGatewayTax(gatewayTax);
+        payment.setRefundedAmount(refundableAmount);
+
         if("captured".equals(paymentStatus)){
             confirmBooking(payment,booking,request.getPaymentId());
             payment.setSignature(request.getSignature());

@@ -1,16 +1,19 @@
 package com.tarsem.BookMyStay.Service;
 
+import com.razorpay.RazorpayException;
 import com.tarsem.BookMyStay.Entity.*;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
 import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
+import com.tarsem.BookMyStay.Service.Interfaces.RefundService;
 import com.tarsem.BookMyStay.Strategy.PricingService;
 import com.tarsem.BookMyStay.dto.booking.*;
 import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
+import com.tarsem.BookMyStay.dto.payment.RefundResponseDTO;
 import com.tarsem.BookMyStay.producer.KafkaProducerService;
 import com.tarsem.bookmystay.events.booking.BookingCancelledEvent;
 import com.tarsem.bookmystay.events.booking.BookingExpiredEvent;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -45,6 +49,7 @@ public class BookingServiceImpl implements BookingService {
     private GuestRepository guestRepository;
     private KafkaProducerService kafkaProducerService;
     private AuthorizationService authorizationService;
+    private RefundService refundService;
     @Override
     @Transactional
     public BookingDTO initializeBooking(BookingRequestDTO bookingRequest) throws RoomNotAvailableException {
@@ -166,7 +171,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Transactional
-    public BookingCancelDTO cancelBooking(Long bookingId) throws IllegalStateException {
+    public BookingCancelDTO cancelBooking(Long bookingId) throws RuntimeException, AccessDeniedException, RazorpayException {
         log.info("Cancel request for booking : {}",bookingId);
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
                 ()->new BookingNotFoundException("Booking does not exist for id :" + bookingId)
@@ -177,16 +182,22 @@ public class BookingServiceImpl implements BookingService {
         if(booking.getStatus()!=BookingStatus.BOOKED){
             throw new BusinessRuleViolationException("Booking for this id is not booked or payment is pending");
         }
-        inventoryRepository.cancelBooking(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
-
+        RefundResponseDTO refundResponseDTO=refundService.refund(bookingId);
+        inventoryRepository.cancelBooking
+                (booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
         booking.setStatus(BookingStatus.CANCELLED);
-        booking.getPayment().setPaymentStatus(PaymentStatus.CANCELLED);
-        kafkaProducerService.publishCancelledBooking(buildBookingCancelledEvent(booking));
+        kafkaProducerService.publishCancelledBooking(
+                buildBookingCancelledEvent(
+                        booking,
+                        refundResponseDTO.getRefundAmount()
+                ));
         return BookingCancelDTO.builder()
                 .bookingId(booking.getId())
                 .bookingStatus(booking.getStatus())
                 .checkInDate(booking.getCheckInDate())
                 .checkOutDate(booking.getCheckOutDate())
+                .refundStatus(refundResponseDTO.getRefundStatus())
+                .refundAmount(BigDecimal.valueOf(refundResponseDTO.getRefundAmount()))
                 .message("Booking cancelled successfully.")
                 .build();
 
@@ -308,7 +319,7 @@ public class BookingServiceImpl implements BookingService {
         return dto;
     }
 
-    private BookingCancelledEvent buildBookingCancelledEvent(BookingEntity booking) {
+    private BookingCancelledEvent buildBookingCancelledEvent(BookingEntity booking, Double refundAmount) {
 
         return BookingCancelledEvent.builder()
 
@@ -318,7 +329,7 @@ public class BookingServiceImpl implements BookingService {
                 .hotelName(booking.getHotel().getName())
                 .roomType(booking.getRoom().getRoomType().toString())
                 .bookingId(booking.getId())
-                .refundAmount(booking.getPayment().getAmount())
+                .refundAmount(BigDecimal.valueOf(refundAmount))
                 .eventType(EventType.BOOKING_CANCELLED)
                 .build();
     }

@@ -18,8 +18,6 @@ public class RazorPayConfig {
 
     @PostConstruct
     public void init() {
-        System.out.println("Key ID = " + key);
-        System.out.println("Secret length = " + secret.length());
     }
 
     @Bean

@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Entity;
 
 import com.tarsem.BookMyStay.Enums.PaymentGateway;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
+import com.tarsem.BookMyStay.Enums.RefundStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -44,11 +45,27 @@ public class PaymentEntity {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
+    @Column(precision = 10, scale = 2)
+    private BigDecimal gatewayFee;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal gatewayTax;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal refundableAmount;
+
     @Column(length = 3)
     private String currency;
 
     @Enumerated(EnumType.STRING)
     private PaymentStatus paymentStatus;
+
+    private String gatewayRefundId;
+
+    private BigDecimal refundedAmount;
+
+    @Enumerated(EnumType.STRING)
+    private RefundStatus refundStatus;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
