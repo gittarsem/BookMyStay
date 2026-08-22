@@ -3,15 +3,50 @@ package com.tarsem.BookMyStay.Strategy;
 import com.tarsem.BookMyStay.Entity.InventoryEntity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
-public class OccupancyRateStrategy implements PricingStrategy{
+public class OccupancyRateStrategy implements PricingStrategy {
+
     @Override
-    public BigDecimal calculatePrice(BigDecimal price, InventoryEntity inventory) {
+    public BigDecimal calculateAdjustment(InventoryEntity inventory) {
 
-        double ratio=(double)inventory.getBookCount()/ inventory.getTotalCount();
-        BigDecimal factor=inventory.getSurgeFactor()==null?BigDecimal.ONE:inventory.getSurgeFactor();
-        return ratio==0.8? price.multiply(factor):price;
+        if (inventory.getTotalCount() == null ||
+                inventory.getTotalCount() == 0) {
 
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal booked = BigDecimal.valueOf(
+                inventory.getBookCount()
+        );
+
+        BigDecimal total = BigDecimal.valueOf(
+                inventory.getTotalCount()
+        );
+
+        BigDecimal occupancy = booked.divide(
+                total,
+                4,
+                RoundingMode.HALF_UP
+        );
+
+        if (occupancy.compareTo(BigDecimal.valueOf(0.95)) >= 0) {
+            return BigDecimal.valueOf(0.30);
+        }
+
+        if (occupancy.compareTo(BigDecimal.valueOf(0.85)) >= 0) {
+            return BigDecimal.valueOf(0.20);
+        }
+
+        if (occupancy.compareTo(BigDecimal.valueOf(0.70)) >= 0) {
+            return BigDecimal.valueOf(0.10);
+        }
+
+        if (occupancy.compareTo(BigDecimal.valueOf(0.50)) >= 0) {
+            return BigDecimal.valueOf(0.05);
+        }
+
+        return BigDecimal.ZERO;
     }
 
     @Override

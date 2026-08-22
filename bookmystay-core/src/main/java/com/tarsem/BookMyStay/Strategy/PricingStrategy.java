@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 
 public interface PricingStrategy {
 
-    BigDecimal calculatePrice(BigDecimal price, InventoryEntity inventory);
-
+    BigDecimal calculateAdjustment(InventoryEntity inventory);
     String name();
 }

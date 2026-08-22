@@ -4,17 +4,21 @@ import com.tarsem.BookMyStay.Entity.InventoryEntity;
 
 import java.math.BigDecimal;
 import java.time.DayOfWeek;
-import java.time.LocalDate;
 
-public class WeekendPriceStrategy implements PricingStrategy{
+public class WeekendPriceStrategy implements PricingStrategy {
+
     @Override
-    public BigDecimal calculatePrice(BigDecimal price, InventoryEntity inventory) {
-        DayOfWeek day=inventory.getDate().getDayOfWeek();
+    public BigDecimal calculateAdjustment(InventoryEntity inventory) {
 
-        if(day==DayOfWeek.SATURDAY || day==DayOfWeek.SUNDAY){
-            return price.multiply(BigDecimal.valueOf(1.20));
+        DayOfWeek day = inventory.getDate().getDayOfWeek();
+
+        if (day == DayOfWeek.SATURDAY ||
+                day == DayOfWeek.SUNDAY) {
+
+            return BigDecimal.valueOf(0.20);
         }
-        return price;
+
+        return BigDecimal.ZERO;
     }
 
     @Override
