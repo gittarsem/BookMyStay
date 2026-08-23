@@ -7,6 +7,8 @@ import com.tarsem.BookMyStay.dto.inventory.InventoryUpdateRequest;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 public interface InventoryService {
@@ -18,7 +20,21 @@ public interface InventoryService {
 
     void deleteAllInventories(RoomEntity room);
 
-    HotelSearchResponseDTO searchHotels(String keyword, String city, Double maxPrice, Double minPrice, Double ratings, String sortField, String sortOrder, int page, int size) throws IOException;
+    HotelSearchResponseDTO searchHotels(
+            String keyword,
+            String city,
+            Double minPrice,
+            Double maxPrice,
+            Double ratings,
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime,
+            String sortField,
+            String sortOrder,
+            int page,
+            int size
+    ) throws IOException;
 
     public void scheduledInventoryJob();
 }

@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
+import com.tarsem.BookMyStay.Enums.RoomType;
 import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.RoomNotFoundException;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
@@ -10,6 +11,7 @@ import com.tarsem.BookMyStay.Repositroy.RoomRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
 import com.tarsem.BookMyStay.Service.Interfaces.RoomService;
 import com.tarsem.BookMyStay.dto.hotel.RoomDTO;
+import com.tarsem.BookMyStay.dto.hotel.RoomTypeDTO;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -18,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.*;
 
@@ -116,6 +120,39 @@ public class RoomServiceImpl implements RoomService {
         hotelRepository.save(hotel);
         elasticRepository.save(mapToDocument(hotel));
         return ("Deleted Room with id: "+roomId);
+    }
+
+    @Override
+    public List<RoomTypeDTO> getRoomTypes(Long hotelId) {
+
+        log.info("Getting room types for hotel with ID: {}", hotelId);
+
+        HotelEntity hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() ->
+                        new HotelNotFoundException("Hotel with this id does not exist"));
+
+        Map<RoomType, List<RoomEntity>> roomsByType =
+                hotel.getRooms()
+                        .stream()
+                        .collect(Collectors.groupingBy(RoomEntity::getRoomType));
+
+        return roomsByType.entrySet()
+                .stream()
+                .map(entry -> {
+
+                    List<RoomEntity> rooms = entry.getValue();
+                    RoomEntity firstRoom = rooms.get(0);
+
+                    RoomTypeDTO dto = new RoomTypeDTO();
+
+                    dto.setRoomType(entry.getKey());
+                    dto.setPrice(firstRoom.getPrice());
+                    dto.setCapacity(firstRoom.getCapacity());
+                    dto.setTotalRooms(rooms.size());
+
+                    return dto;
+                })
+                .toList();
     }
 
 }

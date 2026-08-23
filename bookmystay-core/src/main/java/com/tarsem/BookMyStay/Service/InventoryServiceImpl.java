@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
+import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Exceptions.RoomNotFoundException;
 import com.tarsem.BookMyStay.document.HotelDocument;
 import com.tarsem.BookMyStay.dto.hotel.HotelSearchResponseDTO;
@@ -25,7 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.verifyHotelOwner;
 
@@ -97,99 +103,329 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    @Cacheable(value = "hotel_search",
-            key = "#keyword + '-' + #city + '-' + #minPrice + '-' + #maxPrice + '-' + #ratings + '-' + #sortField + '-' + #sortOrder + '-' + #page + '-' + #size"
+    @Cacheable(
+            value = "hotel_search",
+            key = "#keyword + '-' + #city + '-' + #minPrice + '-' + #maxPrice + '-' + #ratings + '-' + #checkInDate + '-' + #checkInTime + '-' + #checkOutDate + '-' + #checkOutTime + '-' + #sortField + '-' + #sortOrder + '-' + #page + '-' + #size"
     )
-    public HotelSearchResponseDTO searchHotels(String keyword,
-                                               String city,
-                                               Double minPrice,
-                                               Double maxPrice,
-                                               Double ratings,
-                                               String sortField,
-                                               String sortOrder,
-                                               int page,
-                                               int size) throws IOException {
-        BoolQuery.Builder builder=new BoolQuery.Builder();
+    public HotelSearchResponseDTO searchHotels(
+            String keyword,
+            String city,
+            Double minPrice,
+            Double maxPrice,
+            Double ratings,
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime,
+            String sortField,
+            String sortOrder,
+            int page,
+            int size
+    ) throws IOException {
 
-        if(keyword!=null && !keyword.isEmpty()){
-            builder.must(b->b
-                    .match(mm->mm
-                            .field("name")
-                            .query(keyword)
+        validateSearchDates(
+                checkInDate,
+                checkInTime,
+                checkOutDate,
+                checkOutTime
+        );
+
+        BoolQuery.Builder builder =
+                new BoolQuery.Builder();
+
+        if (keyword != null && !keyword.isEmpty()) {
+
+            builder.must(
+                    b -> b.match(
+                            mm -> mm
+                                    .field("name")
+                                    .query(keyword)
                     )
             );
-
         }
 
-        builder.filter(f -> f
-                .term(t -> t
-                        .field("active")
-                        .value(true)
+        builder.filter(
+                f -> f.term(
+                        t -> t
+                                .field("active")
+                                .value(true)
                 )
         );
 
-        if(city!=null && !city.isEmpty()){
-            builder.filter(b->b
-                    .term(m->m
-                            .value(city.toLowerCase())
-                            .field("city")
-                    )
+        if (city != null && !city.isEmpty()) {
 
+            builder.filter(
+                    b -> b.term(
+                            m -> m
+                                    .value(city.toLowerCase())
+                                    .field("city")
+                    )
             );
         }
 
-        if(minPrice!=null && maxPrice!=null){
-            builder.filter(f->f
-                    .range(r->r
+        if (minPrice != null || maxPrice != null) {
 
-                            .number(n->{
+            builder.filter(
+                    f -> f.range(
+                            r -> r.number(
+                                    n -> {
 
-                                n.field("price");
-                                if(minPrice!=null) n.gte(minPrice);
-                                if(maxPrice!=null) n.lte(maxPrice);
+                                        n.field("price");
 
-                                return n;
-                            }
+                                        if (minPrice != null) {
+                                            n.gte(minPrice);
+                                        }
 
+                                        if (maxPrice != null) {
+                                            n.lte(maxPrice);
+                                        }
 
+                                        return n;
+                                    }
                             )
                     )
             );
         }
 
-        if(ratings!=null){
-            builder.filter(f->f
-                    .range(r->r
-                            .number(n->{
-                                n.field("ratings");
-                                return n.gte(ratings);
-                            })
+        if (ratings != null) {
+
+            builder.filter(
+                    f -> f.range(
+                            r -> r.number(
+                                    n -> n
+                                            .field("ratings")
+                                            .gte(ratings)
+                            )
                     )
             );
         }
 
-        BoolQuery boolQuery =builder.build();
-        SearchResponse<HotelDocument> response =elasticsearch.search(s->s
-                .index("hotels")
-                .query(q->q.bool(boolQuery))
-                .from(page*size)
-                .size(size)
-                .sort(so->so
-                        .field(f->f
-                                .field(sortField.equals("name")?"name.keyword":sortField)
-                                .order(sortOrder.equalsIgnoreCase("asc")? SortOrder.Asc:SortOrder.Desc)
-                        )
+        SearchResponse<HotelDocument> response =
+                elasticsearch.search(
+                        s -> s
+                                .index("hotels")
+                                .query(
+                                        q -> q.bool(
+                                                builder.build()
+                                        )
+                                )
+                                /*
+                                 * Fetch all Elasticsearch candidates first.
+                                 *
+                                 * Availability filtering happens in PostgreSQL
+                                 * before pagination.
+                                 */
+                                .from(0)
+                                .size(10000)
+                                .sort(
+                                        so -> so.field(
+                                                f -> f
+                                                        .field(
+                                                                sortField.equals("name")
+                                                                        ? "name.keyword"
+                                                                        : sortField
+                                                        )
+                                                        .order(
+                                                                sortOrder.equalsIgnoreCase("asc")
+                                                                        ? SortOrder.Asc
+                                                                        : SortOrder.Desc
+                                                        )
+                                        )
+                                ),
+                        HotelDocument.class
+                );
 
-                ),
-                HotelDocument.class
-        );
+        List<HotelDocument> hotels =
+                response.hits()
+                        .hits()
+                        .stream()
+                        .map(hit -> hit.source())
+                        .filter(java.util.Objects::nonNull)
+                        .toList();
 
-        List<HotelDocument> hotelDocumentList=response.hits().hits().stream()
-                .map(it->it.source())
+        /*
+         * If no date/time was supplied,
+         * return normal Elasticsearch search.
+         */
+        if (checkInDate == null) {
+
+            return createPaginatedResponse(
+                    hotels,
+                    page,
+                    size
+            );
+        }
+
+        /*
+         * Build requested time range.
+         */
+        LocalDateTime checkIn =
+                LocalDateTime.of(
+                        checkInDate,
+                        checkInTime
+                );
+
+        LocalDateTime checkOut =
+                LocalDateTime.of(
+                        checkOutDate,
+                        checkOutTime
+                );
+
+        /*
+         * Hourly booking:
+         *
+         * 29 Aug 14:00 → 18:00
+         *
+         * Inventory required:
+         * 29 Aug only
+         *
+         * Daily booking:
+         *
+         * 29 Aug → 31 Aug
+         *
+         * Inventory required:
+         * 29 Aug + 30 Aug
+         */
+        LocalDate inventoryEndDate =
+                checkInDate.equals(checkOutDate)
+                        ? checkInDate.plusDays(1)
+                        : checkOutDate;
+
+        long requiredInventoryDays =
+                java.time.temporal.ChronoUnit.DAYS.between(
+                        checkInDate,
+                        inventoryEndDate
+                );
+
+        Collection<String> activeStatuses =
+                List.of(
+                        BookingStatus.PAYMENT_PENDING.name(),
+                        BookingStatus.BOOKED.name()
+                );
+
+        /*
+         * Ask PostgreSQL which hotels have
+         * at least one available room.
+         */
+        List<Long> availableHotelIds =
+                roomRepo.findAvailableHotelIds(
+                        checkInDate,
+                        inventoryEndDate,
+                        requiredInventoryDays,
+                        checkIn,
+                        checkOut,
+                        activeStatuses
+                );
+
+        Set<String> availableHotels =
+                availableHotelIds.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.toSet());
+
+        hotels = hotels.stream()
+                .filter(
+                        hotel ->
+                                availableHotels.contains(
+                                        hotel.getId()
+                                )
+                )
                 .toList();
-        long total=response.hits().total().value();
 
-        return new HotelSearchResponseDTO(hotelDocumentList,total,page,size);
+        return createPaginatedResponse(
+                hotels,
+                page,
+                size
+        );
+    }
+
+    private void validateSearchDates(
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime
+    ) {
+
+        boolean anyProvided =
+                checkInDate != null
+                        || checkInTime != null
+                        || checkOutDate != null
+                        || checkOutTime != null;
+
+        boolean allProvided =
+                checkInDate != null
+                        && checkInTime != null
+                        && checkOutDate != null
+                        && checkOutTime != null;
+
+        if (anyProvided && !allProvided) {
+
+            throw new IllegalArgumentException(
+                    "Check-in date, check-in time, check-out date " +
+                            "and check-out time must all be provided."
+            );
+        }
+
+        if (!allProvided) {
+            return;
+        }
+
+        LocalDateTime checkIn =
+                LocalDateTime.of(
+                        checkInDate,
+                        checkInTime
+                );
+
+        LocalDateTime checkOut =
+                LocalDateTime.of(
+                        checkOutDate,
+                        checkOutTime
+                );
+
+        if (!checkIn.isBefore(checkOut)) {
+
+            throw new IllegalArgumentException(
+                    "Check-out must be after check-in."
+            );
+        }
+    }
+
+    private HotelSearchResponseDTO createPaginatedResponse(
+            List<HotelDocument> hotels,
+            int page,
+            int size
+    ) {
+
+        int start =
+                page * size;
+
+        if (start >= hotels.size()) {
+
+            return new HotelSearchResponseDTO(
+                    List.of(),
+                    hotels.size(),
+                    page,
+                    size
+            );
+        }
+
+        int end =
+                Math.min(
+                        start + size,
+                        hotels.size()
+                );
+
+        List<HotelDocument> pageContent =
+                hotels.subList(
+                        start,
+                        end
+                );
+
+        return new HotelSearchResponseDTO(
+                pageContent,
+                hotels.size(),
+                page,
+                size
+        );
     }
 
 
