@@ -1,14 +1,17 @@
 package com.tarsem.BookMyStay.Service;
 
-import com.tarsem.BookMyStay.Entity.HotelEntity;
-import com.tarsem.BookMyStay.Entity.RoomEntity;
-import com.tarsem.BookMyStay.Entity.UserEntity;
+import com.tarsem.BookMyStay.Entity.*;
+import com.tarsem.BookMyStay.Enums.HotelAmenity;
+import com.tarsem.BookMyStay.Enums.RoomType;
 import com.tarsem.BookMyStay.Exceptions.HotelNotFoundException;
 import com.tarsem.BookMyStay.Exceptions.UnAuthorisedException;
 import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
+import com.tarsem.BookMyStay.Repositroy.RoomTypePricingRepository;
+import com.tarsem.BookMyStay.Service.Interfaces.CloudinaryService;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
+import com.tarsem.BookMyStay.dto.hotel.HotelPricingDTO;
 import com.tarsem.BookMyStay.dto.hotel.HotelInfoDTO;
 import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
@@ -22,7 +25,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.*;
@@ -33,21 +39,33 @@ import static com.tarsem.BookMyStay.Utils.AppUtils.*;
 public class HotelServiceImpl implements HotelService {
 
      private final HotelRepository hotelRepository;
+     private final RoomTypePricingRepository roomTypePricingRepository;
      private final InventoryService inventoryService;
      private final ModelMapper modelMapper;
      private final HotelElasticRepository elasticRepository;
-    private final AuthorizationService authorizationService;
+     private final AuthorizationService authorizationService;
+     private final CloudinaryService cloudinaryService;
+
+
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_search", allEntries = true),
             @CacheEvict(value = "user_hotels", allEntries = true)
     })
-    public HotelResponseDTO createHotel(HotelRequestDTO hotelRequestDTO){
+    public HotelResponseDTO createHotel(HotelRequestDTO hotelRequestDTO, List<MultipartFile> img) throws IOException {
+        List<String> imageUrls = new ArrayList<>();
+
+        if (img != null && !img.isEmpty()) {
+            imageUrls = cloudinaryService.uploadImages(img);
+        }
+        System.out.println(hotelRequestDTO);
         HotelEntity hotel=modelMapper.map(hotelRequestDTO,HotelEntity.class);
         UserEntity user=giveMeCurrentUser();
         hotel.setOwner(user);
+        hotel.setCity(hotelRequestDTO.getCity());
         hotel.setActive(false);
-        hotelRepository.save(hotel);
+        hotel.setImages(imageUrls);
+        hotel=hotelRepository.save(hotel);
         elasticRepository.save(mapToDocument(hotel));
         HotelResponseDTO newHotel=modelMapper.map(hotel,HotelResponseDTO.class);
         log.info("Saved hotel with id {}", newHotel.getId());
@@ -134,6 +152,7 @@ public class HotelServiceImpl implements HotelService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(value = "hotels", key = "#hotelId")
     public HotelInfoDTO findHotelById(Long hotelId) {
         HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
@@ -146,7 +165,18 @@ public class HotelServiceImpl implements HotelService {
 
                 )
                 .toList();
-        return new HotelInfoDTO(modelMapper.map(hotel,HotelResponseDTO.class),roomsList);
+        List<String> images = new ArrayList<>(hotel.getImages());
+        List<HotelAmenity> amenities = new ArrayList<>(hotel.getAmenities());
+        return HotelInfoDTO.builder()
+                .hotels(modelMapper.map(hotel, HotelResponseDTO.class))
+                .rooms(roomsList)
+                .description(hotel.getDescription())
+                .images(images)
+                .amenities(amenities)
+                .rating(hotel.getAverageRating())
+                .reviewCount(hotel.getTotalReviews())
+                .minPrice(hotel.getMinPrice())
+                .build();
     }
 
     @Override
@@ -155,5 +185,37 @@ public class HotelServiceImpl implements HotelService {
         return hotels.stream().map(
                 (hotel)->modelMapper.map(hotel,HotelResponseDTO.class)
         ).toList();
+    }
+
+    @Override
+    @Transactional
+    public List<HotelPricingDTO> putHotelPricing(Long hotelId, RoomType roomType, HotelPricingDTO hotelPricingDTO) {
+
+        HotelEntity hotel=hotelRepository.findById(hotelId).orElseThrow(
+                ()->new HotelNotFoundException("Hotel not found with id:"+hotelId)
+        );
+
+        RoomTypePricingEntity roomTypePricingEntity=roomTypePricingRepository.
+                findByHotelIdAndRoomType(hotelId,roomType)
+                .orElseGet(
+                        ()->{
+                            RoomTypePricingEntity entity=new RoomTypePricingEntity();
+                            entity.setHotel(hotel);
+                            entity.setRoomType(roomType);
+                            return entity;
+                        }
+                );
+
+
+        roomTypePricingEntity.setHourlyPrice(hotelPricingDTO.getHourlyPrice());
+        roomTypePricingEntity.setDailyPrice(hotelPricingDTO.getDailyPrice());
+
+        roomTypePricingRepository.save(roomTypePricingEntity);
+        List<HotelPricingDTO> list=hotel.getRoomTypePricingEntities().stream().map(
+                roomTypePricingEntity1 ->
+                    modelMapper.map(roomTypePricingEntity1,HotelPricingDTO.class)
+
+        ).toList();
+        return list;
     }
 }

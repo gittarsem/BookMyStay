@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.tarsem.BookMyStay.Enums.HotelAmenity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,7 +9,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +49,34 @@ public class HotelEntity {
     @OneToMany(mappedBy = "hotel",fetch = FetchType.LAZY)
     @JsonIgnore
     private List<RoomEntity> rooms;
+
+    @OneToMany(
+            mappedBy = "hotel",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @JsonIgnore
+    private List<RoomTypePricingEntity> roomTypePricingEntities=new ArrayList<>();
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "hotel_images",
+            joinColumns = @JoinColumn(name = "hotel_id")
+    )
+    @Column(name = "image_url")
+    private List<String> images = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "hotel_amenities",
+            joinColumns = @JoinColumn(name = "hotel_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "amenity")
+    private List<HotelAmenity> amenities = new ArrayList<>();
 
     @ManyToOne(optional = false)
     private UserEntity owner;

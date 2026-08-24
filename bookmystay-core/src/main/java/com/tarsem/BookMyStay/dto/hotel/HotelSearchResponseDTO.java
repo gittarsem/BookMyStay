@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class HotelSearchResponseDTO {
-    private List<HotelDocument> hotel;
+    private List<HotelDocument> hotels;
     long total;
     int page;
     int size;
