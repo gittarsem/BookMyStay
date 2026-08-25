@@ -149,6 +149,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!--Cloudinary-->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.39.0</version>
+        </dependency>
+
         <dependency>
             <groupId>com.tarsem</groupId>
             <artifactId>common-events</artifactId>

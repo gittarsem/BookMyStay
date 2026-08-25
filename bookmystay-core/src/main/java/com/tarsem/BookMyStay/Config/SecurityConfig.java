@@ -50,7 +50,8 @@ public class SecurityConfig {
                                 "/hotels/search/**",
                                 "/api/payments/**",
                                 "/payment-test.html",
-                                "/kafka/**"
+                                "/kafka/**",
+                                "/admin/reindex"
                         ).permitAll()
 
                         .requestMatchers(
