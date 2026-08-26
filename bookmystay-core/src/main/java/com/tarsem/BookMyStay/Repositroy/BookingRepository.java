@@ -1,6 +1,7 @@
 package com.tarsem.BookMyStay.Repositroy;
 
 import com.tarsem.BookMyStay.Entity.BookingEntity;
+import com.tarsem.BookMyStay.Entity.GuestEntity;
 import com.tarsem.BookMyStay.Entity.HotelEntity;
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
@@ -41,4 +42,6 @@ public interface BookingRepository extends JpaRepository<BookingEntity,Long> {
             Long bookingId,
             HotelEntity hotel
     );
+
+    void deleteByGuests(GuestEntity guest);
 }

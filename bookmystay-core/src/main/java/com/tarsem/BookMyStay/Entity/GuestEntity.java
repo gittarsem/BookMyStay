@@ -26,4 +26,8 @@ public class GuestEntity {
 
     private Gender gender;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", nullable = false)
+    private BookingEntity booking;
+
 }

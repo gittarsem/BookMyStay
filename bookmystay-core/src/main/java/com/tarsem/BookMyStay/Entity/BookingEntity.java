@@ -1,5 +1,6 @@
 package com.tarsem.BookMyStay.Entity;
 
+import com.tarsem.BookMyStay.Enums.BookingMode;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -42,11 +44,19 @@ public class BookingEntity {
     @Column(name = "check_out_date", nullable = false)
     private LocalDate checkOutDate;
 
+    private LocalTime checkInTime;
+    private LocalTime checkOutTime;
+
     @Column(name = "rooms_count", nullable = false)
     private Integer roomsCount;
 
     @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BookingMode bookingMode;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -56,11 +66,11 @@ public class BookingEntity {
 
     private Integer childCount;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "booking_guest",
-            joinColumns = @JoinColumn(name = "booking_id"),
-            inverseJoinColumns = @JoinColumn(name = "guest_id")
+    @OneToMany(
+            mappedBy = "booking",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
     )
     @Builder.Default
     private Set<GuestEntity> guests = new HashSet<>();

@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service;
 
 import com.razorpay.RazorpayException;
 import com.tarsem.BookMyStay.Entity.*;
+import com.tarsem.BookMyStay.Enums.BookingMode;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Enums.PaymentStatus;
 import com.tarsem.BookMyStay.Exceptions.*;
@@ -9,6 +10,7 @@ import com.tarsem.BookMyStay.Repositroy.*;
 import com.tarsem.BookMyStay.Service.Interfaces.BookingService;
 import com.tarsem.BookMyStay.Service.Interfaces.RefundService;
 import com.tarsem.BookMyStay.Strategy.PricingService;
+import com.tarsem.BookMyStay.Strategy.RefundPolicy;
 import com.tarsem.BookMyStay.dto.booking.*;
 import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
@@ -24,13 +26,16 @@ import org.jspecify.annotations.Nullable;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.nio.file.AccessDeniedException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
@@ -40,71 +45,260 @@ import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
 @Slf4j
 public class BookingServiceImpl implements BookingService {
 
-    private BookingRepository bookingRepository;
+    private final BookingRepository bookingRepository;
     private HotelRepository hotelRepository;
     private RoomRepository roomRepository;
     private InventoryRepository inventoryRepository;
+    private RoomTypePricingRepository roomTypePricingRepository;
     private PricingService pricingService;
     private ModelMapper modelMapper;
     private GuestRepository guestRepository;
     private KafkaProducerService kafkaProducerService;
     private AuthorizationService authorizationService;
     private RefundService refundService;
+    private final PriceQuoteService priceQuoteService;
+    private final RefundPolicy refundPolicy;
+
+
+
     @Override
     @Transactional
-    public BookingDTO initializeBooking(BookingRequestDTO bookingRequest) throws RoomNotAvailableException {
-        log.info("Initialising booking for hotel : {}, room: {}, date {}-{}", bookingRequest.getHotelId(),
-                bookingRequest.getRoomType(), bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate());
+    public BookingDTO initializeBooking(
+            BookingRequestDTO request
+    ) {
 
-        HotelEntity hotel=hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(
-                ()-> new HotelNotFoundException("Hotel does not exist with this ID: "+bookingRequest.getHotelId())
-        );
+        if (request.getQuoteId() == null
+                || request.getQuoteId().isBlank()) {
 
-        int totalCapReq=bookingRequest.getAdultCount()+bookingRequest.getChildCount();
-        long daysCount = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(),bookingRequest.getCheckOutDate())+1;
-        RoomEntity candidateRoom =roomRepository.findSuitableRoom(
-                hotel.getId(),
-                bookingRequest.getRoomType(),
-                totalCapReq,
-                bookingRequest.getCheckInDate(),
-                bookingRequest.getCheckOutDate(),
-                daysCount
-        ).orElseThrow(
-                ()->new RoomNotAvailableException("Room is not Available")
-        );
-
-
-        List<InventoryEntity> inventoryEntityList=inventoryRepository.findAndLockAvailableInventory(
-                candidateRoom.getId(), bookingRequest.getCheckInDate(),bookingRequest.getCheckOutDate()
-        );
-
-
-        if(inventoryEntityList.size()!=daysCount){
-            throw new RoomNotAvailableException("Room is not Available Anymore");
+            throw new BusinessRuleViolationException(
+                    "Price quote is required."
+            );
         }
 
-        inventoryRepository.initBooking(
-                candidateRoom.getId(),bookingRequest.getCheckInDate(),bookingRequest.getCheckOutDate()
-        );
+        PriceQuoteDTO quote =
+                priceQuoteService.claimQuote(
+                        request.getQuoteId()
+                );
 
-        BigDecimal price = pricingService.calculateTotalPrice(inventoryEntityList);
-        System.out.println(price);
-        BookingEntity bookingEntity=BookingEntity.builder()
-                .status(BookingStatus.PAYMENT_PENDING)
-                .hotel(hotel)
-                .room(candidateRoom)
-                .roomsCount(1)
-                .checkInDate(bookingRequest.getCheckInDate())
-                .checkOutDate(bookingRequest.getCheckOutDate())
-                .adultCount(bookingRequest.getAdultCount())
-                .childCount(bookingRequest.getChildCount())
-                .user(giveMeCurrentUser())
-                .totalPrice(price)
-                .build();
+        try {
 
-        bookingRepository.save(bookingEntity);
+            validateQuote(
+                    quote,
+                    request
+            );
 
-        return modelMapper.map(bookingEntity,BookingDTO.class);
+            HotelEntity hotel =
+                    hotelRepository.findById(
+                            request.getHotelId()
+                    ).orElseThrow(() ->
+                            new HotelNotFoundException(
+                                    "Hotel does not exist with this ID: "
+                                            + request.getHotelId()
+                            )
+                    );
+
+            RoomEntity room =
+                    roomRepository.findByIdForUpdateAndLock(
+                            quote.getRoomId()
+                    ).orElseThrow(() ->
+                            new RoomNotAvailableException(
+                                    "Room no longer exists."
+                            )
+                    );
+
+            Collection<String> activeStatuses =
+                    List.of(
+                            BookingStatus.PAYMENT_PENDING.name(),
+                            BookingStatus.BOOKED.name()
+                    );
+
+            /*
+             * Only hourly bookings need
+             * booking-level time overlap.
+             */
+            if (request.getBookingMode()
+                    == BookingMode.HOURLY) {
+
+                if (!roomRepository.isRoomAvailable(
+                        room.getId(),
+                        request.getCheckInDate(),
+                        request.getCheckInTime(),
+                        request.getCheckOutDate(),
+                        request.getCheckOutTime(),
+                        activeStatuses
+                )) {
+
+                    throw new RoomNotAvailableException(
+                            "Room is no longer available for the selected time."
+                    );
+                }
+            }
+
+            LocalDate inventoryEndDate;
+
+            long requiredDays;
+
+            if (request.getBookingMode() == BookingMode.HOURLY) {
+
+                inventoryEndDate =
+                        request.getCheckInDate().plusDays(1);
+
+                requiredDays = 1;
+
+            } else {
+
+                inventoryEndDate =
+                        request.getCheckOutDate();
+
+                requiredDays =
+                        ChronoUnit.DAYS.between(
+                                request.getCheckInDate(),
+                                request.getCheckOutDate()
+                        );
+            }
+
+            List<InventoryEntity> inventory =
+                    inventoryRepository.findAndLockAvailableInventory(
+                            room.getId(),
+                            request.getCheckInDate(),
+                            inventoryEndDate
+                    );
+
+
+            if (inventory.size() != requiredDays) {
+
+                throw new RoomNotAvailableException(
+                        "Room inventory is no longer available."
+                );
+            }
+
+            int updatedRows =
+                    inventoryRepository.initBooking(
+                            room.getId(),
+                            request.getCheckInDate(),
+                            inventoryEndDate
+                    );
+
+            if (updatedRows != requiredDays) {
+
+                throw new RoomNotAvailableException(
+                        "Room inventory is no longer available."
+                );
+            }
+
+            BookingEntity booking =
+                    BookingEntity.builder()
+                            .status(
+                                    BookingStatus.PAYMENT_PENDING
+                            )
+                            .hotel(hotel)
+                            .room(room)
+                            .roomsCount(1)
+                            .checkInDate(
+                                    request.getCheckInDate()
+                            )
+                            .checkOutDate(
+                                    request.getCheckOutDate()
+                            )
+                            .checkInTime(
+                                    request.getCheckInTime()
+                            )
+                            .checkOutTime(
+                                    request.getCheckOutTime()
+                            )
+                            .bookingMode(
+                                    request.getBookingMode()
+                            )
+                            .adultCount(
+                                    request.getAdultCount()
+                            )
+                            .childCount(
+                                    request.getChildCount()
+                            )
+                            .user(
+                                    giveMeCurrentUser()
+                            )
+                            .totalPrice(
+                                    quote.getFinalPrice()
+                            )
+                            .build();
+
+            bookingRepository.save(booking);
+
+            priceQuoteService.completeQuote(
+                    request.getQuoteId()
+            );
+
+            return modelMapper.map(
+                    booking,
+                    BookingDTO.class
+            );
+
+        } catch (Exception ex) {
+
+            priceQuoteService.releaseQuote(
+                    request.getQuoteId()
+            );
+
+            throw ex;
+        }
+    }
+
+
+    private void validateQuote(
+            PriceQuoteDTO quote,
+            BookingRequestDTO request
+    ) {
+
+        if (quote == null) {
+            throw new BusinessRuleViolationException(
+                    "Price quote is invalid or expired."
+            );
+        }
+
+        if (request == null) {
+            throw new BusinessRuleViolationException(
+                    "Booking request is required."
+            );
+        }
+
+        boolean mismatch =
+                !Objects.equals(
+                        quote.getHotelId(),
+                        request.getHotelId()
+                )
+                        || request.getRoomType() == null
+                        || !Objects.equals(
+                        quote.getRoomType(),
+                        request.getRoomType().name()
+                )
+                        || request.getBookingMode() == null
+                        || !Objects.equals(
+                        quote.getBookingMode(),
+                        request.getBookingMode().name()
+                )
+                        || !Objects.equals(
+                        quote.getCheckInDate(),
+                        request.getCheckInDate()
+                )
+                        || !Objects.equals(
+                        quote.getCheckOutDate(),
+                        request.getCheckOutDate()
+                )
+                        || !Objects.equals(
+                        quote.getCheckInTime(),
+                        request.getCheckInTime()
+                )
+                        || !Objects.equals(
+                        quote.getCheckOutTime(),
+                        request.getCheckOutTime()
+                );
+
+        if (mismatch) {
+            throw new BusinessRuleViolationException(
+                    "Price quote does not match the booking request."
+            );
+        }
     }
 
     @Override
@@ -115,8 +309,7 @@ public class BookingServiceImpl implements BookingService {
                 ()-> new BookingNotFoundException("Booking not found with this id: "+bookingId)
         );
         UserEntity user=giveMeCurrentUser();
-
-        if(!user.equals(booking.getUser())){
+        if(!user.getId().equals(booking.getUser().getId())){
             throw new UnAuthorisedException("Booking does not belong to this user with id: "+user.getId());
         }
 
@@ -124,20 +317,22 @@ public class BookingServiceImpl implements BookingService {
             throw new PaymentException("Payment has not be completed yet");
         }
 
-        if(!booking.getGuests().isEmpty()){
-            throw new GuestAlreadyAddedException("Guest has already been added");
-        }
 
         int guestsCount=booking.getAdultCount()+booking.getChildCount();
-        if(guests.size()>guestsCount){
+
+        int existingGuests = booking.getGuests().size();
+
+        if (existingGuests + guests.size() > guestsCount) {
             throw new BusinessRuleViolationException(
-                    "Expected " + guestsCount + " guests but received " + guests.size()
+                    "Expected maximum " + guestsCount +
+                            " guests but received " +
+                            (existingGuests + guests.size())
             );
         }
         for(GuestDTO guest:guests){
             GuestEntity guest1=modelMapper.map(guest,GuestEntity.class);
             guest1.setUser(user);
-            guestRepository.save(guest1);
+            guest1.setBooking(booking);
             booking.getGuests().add(guest1);
         }
         booking.setUpdatedAt(LocalDateTime.now());
@@ -146,16 +341,28 @@ public class BookingServiceImpl implements BookingService {
 
     }
 
+    private LocalDate getInventoryEndDate(BookingEntity booking) {
+        return booking.getBookingMode() == BookingMode.HOURLY
+                ? booking.getCheckInDate().plusDays(1)
+                : booking.getCheckOutDate();
+    }
+
     @Override
     @Transactional
-    public void releaseInventory(Long bookingId){
-        log.info("Releasing inventory for booking : {}",bookingId);
+    public void releaseInventory(Long bookingId) {
+        log.info("Releasing inventory for booking : {}", bookingId);
 
-        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()-> new BookingNotFoundException("Booking does not exist with this ID: "+bookingId)
+        BookingEntity booking = bookingRepository.findById(bookingId).orElseThrow(
+                () -> new BookingNotFoundException("Booking does not exist with this ID: " + bookingId)
         );
+        LocalDate inventoryEndDate =
+                getInventoryEndDate(booking);
 
-        inventoryRepository.releaseReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+        inventoryRepository.releaseReservation(
+                booking.getRoom().getId(),
+                booking.getCheckInDate(),
+                inventoryEndDate
+        );
     }
 
     @Override
@@ -166,65 +373,116 @@ public class BookingServiceImpl implements BookingService {
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
                 ()-> new BookingNotFoundException("Booking does not exist with this ID: "+bookingId)
         );
+        LocalDate inventoryEndDate =
+                getInventoryEndDate(booking);
 
-        inventoryRepository.confirmReservation(booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+        inventoryRepository.confirmReservation(
+                booking.getRoom().getId(),
+                booking.getCheckInDate(),
+                inventoryEndDate
+        );
     }
 
     @Transactional
-    public BookingCancelDTO cancelBooking(Long bookingId) throws RuntimeException, AccessDeniedException, RazorpayException {
-        log.info("Cancel request for booking : {}",bookingId);
-        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
-                ()->new BookingNotFoundException("Booking does not exist for id :" + bookingId)
+    public BookingCancelDTO cancelBooking(Long bookingId)
+            throws RuntimeException, AccessDeniedException, RazorpayException {
+
+        log.info("Cancel request for booking : {}", bookingId);
+
+        BookingEntity booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() ->
+                        new BookingNotFoundException(
+                                "Booking does not exist for id :" + bookingId
+                        )
+                );
+
+        if (!booking.getUser().getId().equals(giveMeCurrentUser().getId())) {
+            throw new UnAuthorisedException(
+                    "You are not authorised to cancel this booking"
+            );
+        }
+
+        if (booking.getStatus() != BookingStatus.BOOKED) {
+            throw new BusinessRuleViolationException(
+                    "Only booked reservations can be cancelled"
+            );
+        }
+
+        // Calculate/process refund.
+        // ₹0 refund must NOT throw.
+        RefundResponseDTO refundResponseDTO =
+                refundService.refund(bookingId);
+
+        // Release inventory
+        LocalDate inventoryEndDate = getInventoryEndDate(booking);
+
+        inventoryRepository.cancelBooking(
+                booking.getRoom().getId(),
+                booking.getCheckInDate(),
+                inventoryEndDate
         );
-        if(!booking.getUser().equals(giveMeCurrentUser())){
-            throw new UnAuthorisedException("You are not authorised to cancel this booking");
-        }
-        if(booking.getStatus()!=BookingStatus.BOOKED){
-            throw new BusinessRuleViolationException("Booking for this id is not booked or payment is pending");
-        }
-        RefundResponseDTO refundResponseDTO=refundService.refund(bookingId);
-        inventoryRepository.cancelBooking
-                (booking.getRoom().getId(),booking.getCheckInDate(),booking.getCheckOutDate());
+
+        // Cancel booking regardless of refund amount
         booking.setStatus(BookingStatus.CANCELLED);
+
         kafkaProducerService.publishCancelledBooking(
                 buildBookingCancelledEvent(
                         booking,
                         refundResponseDTO.getRefundAmount()
-                ));
+                )
+        );
+
         return BookingCancelDTO.builder()
                 .bookingId(booking.getId())
                 .bookingStatus(booking.getStatus())
                 .checkInDate(booking.getCheckInDate())
                 .checkOutDate(booking.getCheckOutDate())
                 .refundStatus(refundResponseDTO.getRefundStatus())
-                .refundAmount(BigDecimal.valueOf(refundResponseDTO.getRefundAmount()))
+                .refundAmount(
+                        BigDecimal.valueOf(
+                                refundResponseDTO.getRefundAmount()
+                        )
+                )
                 .message("Booking cancelled successfully.")
                 .build();
-
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void expireBooking(BookingEntity booking) {
         log.info("Expiring booking: {}", booking.getId());
         releaseInventory(booking.getId());
         booking.setStatus(BookingStatus.EXPIRED);
-        booking.getPayment().setPaymentStatus(PaymentStatus.EXPIRED);
+        if (booking.getPayment() != null) {
+            booking.getPayment().setPaymentStatus(PaymentStatus.EXPIRED);
+        }
         kafkaProducerService.publishExpiredBooking(buildBookingExpiredEvent(booking));
     }
 
     @Override
     public List<BookingHistoryDTO> getMyBookings() {
         List<BookingEntity> bookingHistory=bookingRepository.findAllByUserOrderByCreatedAtDesc(giveMeCurrentUser());
-        return bookingHistory.stream().map(
-                this::mapToBookingHistoryDTO
-        ).toList();
+
+        return bookingHistory.stream()
+                .map(this::mapToBookingHistoryDTO)
+                .toList();
     }
 
     @Override
     public BookingDetailsDTO getBookingDetails(Long bookingId) {
         BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
                 ()->new BookingNotFoundException("Booking does not exist with id:"+bookingId));
+        PaymentEntity payment = booking.getPayment();
+
+        PaymentStatus paymentStatus =
+                payment != null
+                        ? payment.getPaymentStatus()
+                        : PaymentStatus.PENDING;
+
+        BigDecimal amount =
+                payment != null
+                        ? payment.getAmount()
+                        : booking.getTotalPrice();
 
         if(!booking.getUser().getId().equals(giveMeCurrentUser().getId())){
             throw new UnAuthorisedException("User is not allowed to Access this booking");
@@ -236,11 +494,15 @@ public class BookingServiceImpl implements BookingService {
         details.setRoomType(booking.getRoom().getRoomType());
         details.setCheckInDate(booking.getCheckInDate());
         details.setCheckOutDate(booking.getCheckOutDate());
+        details.setBookingMode(booking.getBookingMode());
+        details.setCheckInTime(booking.getCheckInTime());
+        details.setCheckOutTime(booking.getCheckOutTime());
         details.setAdultCount(booking.getAdultCount());
         details.setChildCount(booking.getChildCount());
-        details.setPaymentStatus(booking.getPayment().getPaymentStatus());
+        details.setPaymentStatus(paymentStatus);
         details.setBookingStatus(booking.getStatus());
-        details.setAmount(booking.getPayment().getAmount());
+        details.setAmount(amount);
+
 
         Set<GuestDTO> guests = booking.getGuests()
                 .stream()
@@ -292,29 +554,268 @@ public class BookingServiceImpl implements BookingService {
         return mapToOwnerBookingDetailsDTO(booking);
     }
 
-    private BookingHistoryDTO mapToBookingHistoryDTO(BookingEntity booking) {
+    @Override
+    @Transactional
+    public GuestDTO updateGuestDetails(Long bookingId, Long guestId,GuestDTO request) {
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()->new BookingNotFoundException("Booking not found with id:"+bookingId)
+        );
+        GuestEntity guest=guestRepository.findById(guestId).orElseThrow(
+                ()-> new ResourceNotFoundException("Guest not found with id:"+request.getId())
+        );
+        UserEntity user=giveMeCurrentUser();
 
-        BookingHistoryDTO dto = new BookingHistoryDTO();
+        if(!user.getId().equals(booking.getUser().getId())){
+            throw new UnAuthorisedException("User is not allowed to Access this booking");
+        }
 
-        dto.setBookingId(booking.getId());
+        if (!guest.getBooking().getId().equals(bookingId)) {
+            throw new UnAuthorisedException(
+                    "Guest does not belong to this booking"
+            );
+        }
 
-        dto.setHotelId(booking.getRoom().getHotel().getId());
-        dto.setHotelName(booking.getRoom().getHotel().getName());
-        dto.setCity(booking.getRoom().getHotel().getCity());
+        guest.setName(request.getName().trim());
+        guest.setAge(request.getAge());
+        guest.setUser(user);
+        guest.setGender(request.getGender());
 
-        dto.setRoomType(booking.getRoom().getRoomType());
+        guestRepository.save(guest);
+        booking.setUpdatedAt(LocalDateTime.now());
+        return modelMapper.map(guest,GuestDTO.class);
 
-        dto.setCheckInDate(booking.getCheckInDate());
-        dto.setCheckOutDate(booking.getCheckOutDate());
+    }
 
-        dto.setBookingStatus(booking.getStatus());
+    @Override
+    @Transactional
+    public String deleteGuestDetails(Long bookingId, Long guestId) {
+        BookingEntity booking=bookingRepository.findById(bookingId).orElseThrow(
+                ()->new BookingNotFoundException("Booking not found with id:"+bookingId)
+        );
+        GuestEntity guest=guestRepository.findById(guestId).orElseThrow(
+                ()-> new ResourceNotFoundException("Guest not found with id:"+guestId)
+        );
+        UserEntity user=giveMeCurrentUser();
+
+        if(!user.getId().equals(booking.getUser().getId())){
+            throw new UnAuthorisedException("User is not allowed to Access this booking");
+        }
+
+        if (!guest.getBooking().getId().equals(bookingId)) {
+            throw new UnAuthorisedException(
+                    "Guest does not belong to this booking"
+            );
+        }
+
+        booking.getGuests().remove(guest);
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        return guest.getName()+"is deleted";
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CancellationPreviewDTO getCancellationPreview(Long bookingId) {
+
+        log.info("Cancellation preview request for booking : {}", bookingId);
+
+        BookingEntity booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() ->
+                        new BookingNotFoundException(
+                                "Booking does not exist for id : " + bookingId
+                        )
+                );
+
+        UserEntity currentUser = giveMeCurrentUser();
+
+        if (!booking.getUser().getId().equals(currentUser.getId())) {
+            throw new UnAuthorisedException(
+                    "You are not authorised to view this booking"
+            );
+        }
+
+        if (booking.getStatus() != BookingStatus.BOOKED) {
+            throw new BusinessRuleViolationException(
+                    "Only booked reservations can be cancelled"
+            );
+        }
 
         PaymentEntity payment = booking.getPayment();
 
-        if (payment != null) {
-            dto.setPaymentStatus(payment.getPaymentStatus());
-            dto.setAmount(payment.getAmount());
+        if (payment == null) {
+            throw new PaymentException("Payment not found for this booking");
         }
+
+        BigDecimal amountPaid = payment.getAmount();
+
+        double refundPercentage =
+                refundPolicy.calculateRefundPercentage(
+                        booking.getCheckInDate()
+                );
+
+        BigDecimal percentage =
+                BigDecimal.valueOf(refundPercentage)
+                        .divide(BigDecimal.valueOf(100));
+
+        BigDecimal refundAmount =
+                amountPaid.multiply(percentage);
+
+        BigDecimal nonRefundableCharges =
+                payment.getGatewayFee()
+                        .add(payment.getGatewayTax());
+
+        refundAmount = refundAmount
+                .subtract(nonRefundableCharges)
+                .max(BigDecimal.ZERO);
+
+        BigDecimal cancellationFee =
+                amountPaid.subtract(refundAmount);
+
+        return CancellationPreviewDTO.builder()
+                .bookingId(booking.getId())
+                .amountPaid(amountPaid)
+                .refundPercentage(
+                        BigDecimal.valueOf(refundPercentage)
+                )
+                .refundAmount(refundAmount)
+                .cancellationFee(cancellationFee)
+                .build();
+    }
+
+
+    private BookingHistoryDTO mapToBookingHistoryDTO(
+            BookingEntity booking
+    ) {
+
+        BookingHistoryDTO dto = new BookingHistoryDTO();
+
+        /*
+         * Hotel image
+         */
+        if (booking.getHotel().getImages() != null
+                && !booking.getHotel().getImages().isEmpty()) {
+
+            dto.setHotelImage(
+                    booking.getHotel().getImages().getFirst()
+            );
+        }
+
+        /*
+         * Basic booking information
+         */
+        dto.setBookingId(
+                booking.getId()
+        );
+
+        dto.setHotelId(
+                booking.getRoom().getHotel().getId()
+        );
+
+        dto.setHotelName(
+                booking.getRoom().getHotel().getName()
+        );
+
+        dto.setCity(
+                booking.getRoom().getHotel().getCity()
+        );
+
+        dto.setRoomType(
+                booking.getRoom().getRoomType()
+        );
+
+
+        /*
+         * Booking mode
+         *
+         * DAILY  -> no time should be displayed
+         * HOURLY -> time should be displayed
+         */
+        dto.setBookingMode(
+                booking.getBookingMode()
+        );
+
+
+        /*
+         * Booking dates
+         */
+        dto.setCheckInDate(
+                booking.getCheckInDate()
+        );
+
+        dto.setCheckOutDate(
+                booking.getCheckOutDate()
+        );
+
+
+        /*
+         * Booking times
+         *
+         * These will normally be:
+         *
+         * DAILY:
+         *   null
+         *   null
+         *
+         * HOURLY:
+         *   10:00
+         *   14:00
+         */
+        dto.setCheckInTime(
+                booking.getCheckInTime()
+        );
+
+        dto.setCheckOutTime(
+                booking.getCheckOutTime()
+        );
+
+
+        /*
+         * Guests
+         */
+        dto.setAdultCount(
+                booking.getAdultCount()
+        );
+
+        dto.setChildCount(
+                booking.getChildCount()
+        );
+
+
+        /*
+         * Booking status
+         */
+        dto.setBookingStatus(
+                booking.getStatus()
+        );
+
+
+        /*
+         * Review
+         */
+        dto.setReviewId(
+                booking.getReview() != null
+                        ? booking.getReview().getId()
+                        : null
+        );
+
+
+        /*
+         * Payment
+         */
+        PaymentEntity payment =
+                booking.getPayment();
+
+        if (payment != null) {
+
+            dto.setPaymentStatus(
+                    payment.getPaymentStatus()
+            );
+
+            dto.setAmount(
+                    payment.getAmount()
+            );
+        }
+
 
         return dto;
     }
@@ -341,7 +842,7 @@ public class BookingServiceImpl implements BookingService {
                 .customerEmail(booking.getUser().getEmail())
                 .hotelName(booking.getHotel().getName())
                 .bookingId(booking.getId())
-                .amountPaid(booking.getPayment().getAmount())
+                .amountPaid(booking.getTotalPrice())
                 .eventType(EventType.BOOKING_EXPIRED)
                 .build();
     }
@@ -425,5 +926,7 @@ public class BookingServiceImpl implements BookingService {
 
         return dto;
     }
+
+
 
 }

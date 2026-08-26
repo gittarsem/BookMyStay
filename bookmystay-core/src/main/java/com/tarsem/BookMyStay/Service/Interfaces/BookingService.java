@@ -8,13 +8,18 @@ import com.tarsem.BookMyStay.dto.booking.*;
 import com.tarsem.BookMyStay.dto.hotel.GuestDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDTO;
 import com.tarsem.BookMyStay.dto.owner.OwnerBookingDetailsDTO;
+import jakarta.validation.Valid;
 import org.jspecify.annotations.Nullable;
 
 import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 public interface BookingService {
-    BookingDTO initializeBooking(BookingRequestDTO bookingRequestDTO) throws RoomNotAvailableException;
+    BookingDTO initializeBooking(BookingRequestDTO bookingRequestDTO);
+
+//    PriceQuoteDTO createPriceQuote(
+//            BookingRequestDTO bookingRequest
+//    );
 
     @Nullable
     BookingDTO addGuests(Long bookingId, List<GuestDTO> guests);
@@ -37,4 +42,17 @@ public interface BookingService {
             BookingStatus bookingStatus);
 
     OwnerBookingDetailsDTO getHotelBooking(Long hotelId, Long bookingId);
+
+    GuestDTO updateGuestDetails(Long bookingId, Long guestId,GuestDTO request);
+
+    String deleteGuestDetails(Long bookingId, Long guestId);
+
+    CancellationPreviewDTO getCancellationPreview(Long bookingId);
+
+
+//    PriceQuoteDTO createDailyPriceQuote(@Valid BookingRequestDTO request);
+//
+//    PriceQuoteDTO createHourlyPriceQuote(@Valid BookingRequestDTO request);
+//
+//    PriceQuoteDTO createPriceQuote(@Valid BookingRequestDTO bookingRequest);
 }
