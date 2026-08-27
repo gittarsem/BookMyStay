@@ -21,7 +21,8 @@ public class ReviewController {
     private final ReviewService reviewService;
 
     @PostMapping("/guest/review")
-    public ResponseEntity<ReviewResponse> createReview(@RequestBody CreateReviewRequest reviewRequest){
+    public ResponseEntity<ReviewResponse> createReview(
+            @Valid @RequestBody CreateReviewRequest reviewRequest){
         return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.createReview(reviewRequest));
     }
 
@@ -58,5 +59,13 @@ public class ReviewController {
         );
     }
 
+    @GetMapping("/guest/review/{reviewId}")
+    public ResponseEntity<ReviewResponse> getReview(
+            @PathVariable Long reviewId
+    ) {
+        return ResponseEntity.ok(
+                reviewService.getReview(reviewId)
+        );
+    }
 
 }

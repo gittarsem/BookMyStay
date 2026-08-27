@@ -19,7 +19,7 @@ public class CreateReviewRequest {
     @NotNull
     @Min(1)
     @Max(5)
-    private int rating;
+    private int ratings;
 
     @NotBlank
     private String comment;

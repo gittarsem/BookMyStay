@@ -7,6 +7,7 @@ import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Enums.BookingStatus;
 import com.tarsem.BookMyStay.Exceptions.*;
 import com.tarsem.BookMyStay.Repositroy.BookingRepository;
+import com.tarsem.BookMyStay.Repositroy.HotelElasticRepository;
 import com.tarsem.BookMyStay.Repositroy.HotelRepository;
 import com.tarsem.BookMyStay.Repositroy.ReviewRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.ReviewService;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 
 import static com.tarsem.BookMyStay.Utils.AppUtils.giveMeCurrentUser;
+import static com.tarsem.BookMyStay.Utils.AppUtils.mapToDocument;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +35,7 @@ public class ReviewServiceImpl implements ReviewService {
     private final ReviewRepository reviewRepository;
     private final ModelMapper modelMapper;
     private final HotelRepository hotelRepository;
+    private final HotelElasticRepository elasticRepository;
 
     @Override
     @Transactional
@@ -63,7 +66,7 @@ public class ReviewServiceImpl implements ReviewService {
 
         ReviewEntity review=new ReviewEntity();
         review.setBooking(booking);
-        review.setRating(reviewRequest.getRating());
+        review.setRating(reviewRequest.getRatings());
         review.setComment(reviewRequest.getComment());
         review.setHotel(booking.getHotel());
         review.setGuest(user);
@@ -149,14 +152,71 @@ public class ReviewServiceImpl implements ReviewService {
         });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ReviewResponse getReview(Long reviewId) {
 
-    private void updateHotelRating(Long hotelId){
-        ReviewStatistics reviewStatistics=reviewRepository.calculateHotelStatistics(hotelId);
-        HotelEntity hotel=hotelRepository.findById(hotelId).orElseThrow(
-                ()->new HotelNotFoundException("Hotel not found with this id:"+hotelId)
+        ReviewEntity review =
+                reviewRepository.findById(reviewId)
+                        .orElseThrow(() ->
+                                new ReviewNotFoundException(
+                                        "Review not found : " + reviewId
+                                )
+                        );
+
+        UserEntity currentUser =
+                giveMeCurrentUser();
+
+        if (!review.getGuest().getId()
+                .equals(currentUser.getId())) {
+
+            throw new UnAuthorisedException(
+                    "You are not allowed to view this review"
+            );
+        }
+
+        ReviewResponse response =
+                modelMapper.map(
+                        review,
+                        ReviewResponse.class
+                );
+
+        response.setGuestName(
+                review.getGuest().getName()
         );
-        hotel.setAverageRating(reviewStatistics.getAverageRating()==null?0.0: reviewStatistics.getAverageRating());
-        hotel.setTotalReviews(Math.toIntExact(reviewStatistics.getTotalReviews()));
+
+        return response;
+    }
+
+
+    private void updateHotelRating(Long hotelId) {
+
+        ReviewStatistics reviewStatistics =
+                reviewRepository.calculateHotelStatistics(hotelId);
+
+        HotelEntity hotel =
+                hotelRepository.findById(hotelId)
+                        .orElseThrow(() ->
+                                new HotelNotFoundException(
+                                        "Hotel not found with this id: " + hotelId
+                                )
+                        );
+
+        hotel.setAverageRating(
+                reviewStatistics.getAverageRating() == null
+                        ? 0.0
+                        : reviewStatistics.getAverageRating()
+        );
+
+        hotel.setTotalReviews(
+                Math.toIntExact(reviewStatistics.getTotalReviews())
+        );
+
+        // Persist updated rating/review count
+        hotelRepository.save(hotel);
+
+        // Update Elasticsearch so hotel search gets the latest values
+        elasticRepository.save(mapToDocument(hotel));
     }
 
 }

@@ -16,4 +16,6 @@ public interface ReviewService {
     void deleteReview(Long reviewId);
 
     Page<ReviewResponse> getHotelReviews(Long hotelId, Pageable pageable);
+
+    ReviewResponse getReview(Long reviewId);
 }
