@@ -57,17 +57,36 @@ public class RefundServiceImpl implements RefundService {
         }
 
         double refundPercentage=refundPolicy.calculateRefundPercentage(booking.getCheckInDate());
-        if (refundPercentage == 0) {
-            throw new BusinessRuleViolationException(
-                    "Booking is not eligible for refund."
-            );
-        }
+
         BigDecimal percentage =
                 BigDecimal.valueOf(refundPercentage)
                         .divide(BigDecimal.valueOf(100));
 
         BigDecimal refundAmount =
                 payment.getAmount().multiply(percentage);
+
+        BigDecimal nonRefundableCharges =
+                payment.getGatewayFee()
+                        .add(payment.getGatewayTax());
+
+        refundAmount = refundAmount.subtract(nonRefundableCharges);
+
+        refundAmount = refundAmount.max(BigDecimal.ZERO);
+
+        if (refundAmount.compareTo(BigDecimal.ZERO) == 0) {
+
+            payment.setRefundedAmount(BigDecimal.ZERO);
+            payment.setRefundStatus(RefundStatus.COMPLETED);
+
+            paymentRepository.save(payment);
+
+            return RefundResponseDTO.builder()
+                    .refundId(null)
+                    .refundAmount(0.0)
+                    .refundStatus(RefundStatus.COMPLETED)
+                    .message("Booking cancelled with no refund.")
+                    .build();
+        }
 
         try {
             JSONObject options=new JSONObject();
