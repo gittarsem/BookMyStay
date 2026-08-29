@@ -1,6 +1,8 @@
 package com.tarsem.BookMyStay.Controller;
 
+import com.tarsem.BookMyStay.Enums.RoomType;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
+import com.tarsem.BookMyStay.dto.hotel.HotelPricingDTO;
 import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
 import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -26,9 +30,12 @@ public class HotelController {
 
     @PostMapping
     @Operation(summary = "Create a new hotel", description = "Adds a new hotel to the system")
-    public ResponseEntity<HotelResponseDTO> createHotel(@RequestBody HotelRequestDTO hotelRequestDTO){
+    public ResponseEntity<HotelResponseDTO> createHotel(
+            @ModelAttribute HotelRequestDTO hotelRequestDTO,
+            @RequestPart List<MultipartFile> img
+            ) throws IOException {
         log.info("Attempt to create new hotel with name: "+ hotelRequestDTO.getName());
-        HotelResponseDTO hotel=hotelService.createHotel(hotelRequestDTO);
+        HotelResponseDTO hotel=hotelService.createHotel(hotelRequestDTO,img);
         return new ResponseEntity<>(hotel, HttpStatus.CREATED);
     }
 
@@ -44,6 +51,14 @@ public class HotelController {
     public ResponseEntity<HotelResponseDTO> updateHotel(@RequestBody HotelRequestDTO hotelRequestDTO, @PathVariable Long hotelId){
         HotelResponseDTO hotelResponseDTO=hotelService.updateHotelById(hotelRequestDTO,hotelId);
         return ResponseEntity.ok(hotelResponseDTO);
+    }
+
+    @PutMapping("{hotelId}/room-type/{roomType}/pricing")
+    public ResponseEntity<List<HotelPricingDTO>> putHotelPricing(@PathVariable Long hotelId,
+                                                                       @PathVariable RoomType roomType,
+                                                                       @RequestBody HotelPricingDTO hotelPricingDTO
+                                                           ){
+        return ResponseEntity.ok(hotelService.putHotelPricing(hotelId,roomType,hotelPricingDTO));
     }
 
     @DeleteMapping("/{hotelId}")
@@ -63,6 +78,8 @@ public class HotelController {
     public ResponseEntity<List<HotelResponseDTO>> getMyHotels(){
         return ResponseEntity.ok(hotelService.getMyHotels());
     }
+
+
 
 
 }
