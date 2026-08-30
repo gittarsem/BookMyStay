@@ -1,0 +1,25 @@
+package com.tarsem.BookMyStay.Enums;
+
+public enum HotelAmenity {
+
+    FREE_WIFI,
+    FREE_PARKING,
+    SWIMMING_POOL,
+    GYM,
+    SPA,
+    RESTAURANT,
+    BAR,
+    ROOM_SERVICE,
+    BREAKFAST_INCLUDED,
+    AIR_CONDITIONING,
+    ELEVATOR,
+    LAUNDRY_SERVICE,
+    FAMILY_ROOMS,
+    AIRPORT_SHUTTLE,
+    POWER_BACKUP,
+    PET_FRIENDLY,
+    BUSINESS_CENTER,
+    CONFERENCE_ROOM,
+    CCTV_SECURITY,
+    EV_CHARGING
+}

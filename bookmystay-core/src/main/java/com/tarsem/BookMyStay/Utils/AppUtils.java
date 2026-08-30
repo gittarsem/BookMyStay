@@ -27,9 +27,19 @@ public class AppUtils
         document.setName(hotel.getName());
         document.setCity(hotel.getCity());
         document.setPrice(getMinPriceRoom(hotel));
-
+        document.setThumbnail(
+                hotel.getImages() != null && !hotel.getImages().isEmpty()
+                        ? hotel.getImages().getFirst()
+                        : null
+        );
         document.setRatings(
                 hotel.getAverageRating()!= null ? hotel.getAverageRating(): 0.0
+        );
+
+        document.setReviewCount(
+                hotel.getTotalReviews() != null
+                        ? hotel.getTotalReviews()
+                        : 0
         );
 
         document.setActive(hotel.getActive());
