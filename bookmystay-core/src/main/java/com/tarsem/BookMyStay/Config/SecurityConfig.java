@@ -42,8 +42,12 @@ public class SecurityConfig {
         http
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
+
                 .authorizeHttpRequests(request -> request
 
+                        // =====================================================
+                        // PUBLIC / AUTH
+                        // =====================================================
 
                         .requestMatchers(
                                 "/auth/**",
@@ -54,23 +58,71 @@ public class SecurityConfig {
                                 "/admin/reindex"
                         ).permitAll()
 
+
+                        // =====================================================
+                        // OWNER APPLICATION
+                        // =====================================================
+                        // A logged-in normal user can apply to become OWNER.
+                        // This MUST come before /owner/**.
+                        // =====================================================
+
+                        .requestMatchers(
+                                "/apply/**"
+                        ).authenticated()
+
+
+                        // =====================================================
+                        // ADMIN
+                        // =====================================================
+
                         .requestMatchers(
                                 "/admin/**"
-                        )
-                        .hasRole("ADMIN")
-                        .requestMatchers("/guest/**").hasRole("GUEST")
-                        .requestMatchers("/owner/**").hasRole("OWNER")
+                        ).hasRole("ADMIN")
+
+
+                        // =====================================================
+                        // GUEST
+                        // =====================================================
+
+                        .requestMatchers(
+                                "/guest/**"
+                        ).hasRole("GUEST")
+
+
+                        // =====================================================
+                        // OWNER
+                        // =====================================================
+
+                        .requestMatchers(
+                                "/owner/**"
+                        ).hasRole("OWNER")
+
+
+                        // =====================================================
+                        // EVERYTHING ELSE
+                        // =====================================================
+
                         .anyRequest().authenticated()
                 )
+
                 .exceptionHandling(
-                        exception->exception.authenticationEntryPoint(
-                                customAuthenticationEntryPoint
-                        )
+                        exception -> exception
+                                .authenticationEntryPoint(
+                                        customAuthenticationEntryPoint
+                                )
                 )
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+
+                .sessionManagement(
+                        session -> session
+                                .sessionCreationPolicy(
+                                        SessionCreationPolicy.STATELESS
+                                )
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
