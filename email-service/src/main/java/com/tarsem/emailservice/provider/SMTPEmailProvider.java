@@ -1,46 +1,73 @@
 package com.tarsem.emailservice.provider;
 
 import com.tarsem.emailservice.exception.EmailSendingException;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import java.util.Date;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SMTPEmailProvider {
 
-    @Value(
-            "${book-my-stay-mail}"
-    )
+    @Value("${book-my-stay-mail}")
     private String fromMail;
+
     private final JavaMailSender javaMailSender;
 
+    public void sendEmail(
+            String emailId,
+            String subject,
+            String body
+    ) {
 
-    public void sendEmail(String emailId, String subject, String body) {
+        log.info("Sending HTML email to {}", emailId);
 
-        SimpleMailMessage message=new SimpleMailMessage();
-
-        message.setTo(emailId);
-        message.setFrom(fromMail);
-        message.setSubject(subject);
-        message.setText(body);
-        message.setSentDate(new Date());
-        message.setReplyTo(fromMail);
-        log.info("Sending email to {}", emailId);
         try {
-            javaMailSender.send(message);
-        } catch (MailException e) {
-            e.printStackTrace();
-            throw new EmailSendingException("Failed to send email");
-        }
-        log.info("Email sent successfully to {}", emailId);
 
+            MimeMessage message =
+                    javaMailSender.createMimeMessage();
+
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(
+                            message,
+                            true,
+                            "UTF-8"
+                    );
+
+            helper.setTo(emailId);
+            helper.setFrom(fromMail);
+            helper.setSubject(subject);
+
+            // true = HTML email
+            helper.setText(body, true);
+
+            helper.setReplyTo(fromMail);
+
+            javaMailSender.send(message);
+
+            log.info(
+                    "HTML email sent successfully to {}",
+                    emailId
+            );
+
+        } catch (MessagingException | MailException e) {
+
+            log.error(
+                    "Failed to send email to {}",
+                    emailId,
+                    e
+            );
+
+            throw new EmailSendingException(
+                    "Failed to send email"
+            );
+        }
     }
 }

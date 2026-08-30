@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Slf4j
 public class BookingEventConsumer {
+
     private final EmailService emailService;
 
     @KafkaListener(
@@ -24,9 +25,41 @@ public class BookingEventConsumer {
             groupId = "email-service"
     )
     public void consumeConfirmEvent(BookingConfirmedEvent event) {
-        log.info("Received BookingConfirmedEvent for booking {}",
-                event.getBookingId());
+
+        log.info(
+                "Received BookingConfirmedEvent for booking {}",
+                event.getBookingId()
+        );
+
         emailService.sendBookingConfirmationEmail(event);
+    }
+
+    @KafkaListener(
+            topics = KafkaTopics.BOOKING_CANCELLED,
+            groupId = "email-service"
+    )
+    public void consumeCancelEvent(BookingCancelledEvent event) {
+
+        log.info(
+                "Received BookingCancelledEvent for booking {}",
+                event.getBookingId()
+        );
+
+        emailService.sendBookingCancellationEmail(event);
+    }
+
+    @KafkaListener(
+            topics = KafkaTopics.BOOKING_EXPIRED,
+            groupId = "email-service"
+    )
+    public void consumeExpiredEvent(BookingExpiredEvent event) {
+
+        log.info(
+                "Received BookingExpiredEvent for booking {}",
+                event.getBookingId()
+        );
+
+        emailService.sendBookingExpirationEmail(event);
     }
 
     @KafkaListener(
@@ -50,53 +83,24 @@ public class BookingEventConsumer {
     }
 
     @KafkaListener(
-            topics = KafkaTopics.BOOKING_CANCELLED,
-            groupId = "email-service"
-    )
-    public void consumeCancelEvent(BookingCancelledEvent event) {
-        log.info("Received BookingCancelledEvent for booking {}",
-                event.getBookingId());
-        emailService.sendBookingCancellationEmail(event);
-    }
-
-
-    @KafkaListener(
             topics = KafkaTopics.BOOKING_CANCELLED_DLT,
             groupId = "email-service-dlt"
     )
     public void consumeCancelledDlt(BookingCancelledEvent event) {
 
         log.error("""
-            Booking cancellation moved to Dead Letter Topic
+                Booking cancellation moved to Dead Letter Topic
 
-            Event Id   : {}
-            Booking Id : {}
-            Customer   : {}
-            Email      : {}
-            """,
+                Event Id   : {}
+                Booking Id : {}
+                Customer   : {}
+                Email      : {}
+                """,
                 event.getEventId(),
                 event.getBookingId(),
                 event.getCustomerName(),
                 event.getCustomerEmail());
     }
-
-    @KafkaListener(
-            topics = KafkaTopics.BOOKING_EXPIRED,
-            groupId = "email-service"
-    )
-    public void consumeExpiredEvent(BookingExpiredEvent event) {
-
-        log.info("Received BookingExpiredEvent for booking {}", event.getBookingId());
-
-        try {
-            emailService.sendBookingExpirationEmail(event);
-            log.info("Expiration email sent successfully");
-        } catch (Exception e) {
-            log.error("Failed while processing booking {}", event.getBookingId(), e);
-            throw e; // Important: rethrow so Kafka can retry and send to DLT
-        }
-    }
-
 
     @KafkaListener(
             topics = KafkaTopics.BOOKING_EXPIRED_DLT,
@@ -105,18 +109,16 @@ public class BookingEventConsumer {
     public void consumeExpiredDlt(BookingExpiredEvent event) {
 
         log.error("""
-            Booking Expired moved to Dead Letter Topic
+                Booking Expired moved to Dead Letter Topic
 
-            Event Id   : {}
-            Booking Id : {}
-            Customer   : {}
-            Email      : {}
-            """,
+                Event Id   : {}
+                Booking Id : {}
+                Customer   : {}
+                Email      : {}
+                """,
                 event.getEventId(),
                 event.getBookingId(),
                 event.getCustomerName(),
                 event.getCustomerEmail());
     }
-
-
 }

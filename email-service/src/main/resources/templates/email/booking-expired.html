@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Booking Expired | BookMyStay</title>
+</head>
+
+<body style="
+    margin: 0;
+    padding: 0;
+    background-color: #f4efe8;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #2f241f;
+">
+
+<table width="100%"
+       cellpadding="0"
+       cellspacing="0"
+       border="0"
+       style="
+           background-color: #f4efe8;
+           padding: 40px 15px;
+       ">
+
+    <tr>
+        <td align="center">
+
+            <table width="620"
+                   cellpadding="0"
+                   cellspacing="0"
+                   border="0"
+                   style="
+                       width: 100%;
+                       max-width: 620px;
+                       background-color: #fffdf9;
+                       border-radius: 16px;
+                       overflow: hidden;
+                   ">
+
+                <!-- Header -->
+
+                <tr>
+                    <td style="
+                        background-color: #2f241f;
+                        padding: 28px 35px;
+                    ">
+
+                        <p style="
+                            margin: 0;
+                            color: #c69a62;
+                            font-size: 12px;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                        ">
+                            BOOKMYSTAY
+                        </p>
+
+                        <p style="
+                            margin: 8px 0 0;
+                            color: #ffffff;
+                            font-size: 13px;
+                        ">
+                            Your stay, thoughtfully booked.
+                        </p>
+
+                    </td>
+                </tr>
+
+
+                <!-- Content -->
+
+                <tr>
+                    <td style="padding: 42px 35px;">
+
+                        <p style="
+                            margin: 0 0 10px;
+                            color: #a47745;
+                            font-size: 12px;
+                            font-weight: bold;
+                            letter-spacing: 1.5px;
+                            text-transform: uppercase;
+                        ">
+                            Booking Expired
+                        </p>
+
+                        <h1 style="
+                            margin: 0;
+                            color: #2f241f;
+                            font-size: 30px;
+                            line-height: 1.25;
+                            font-weight: 600;
+                        ">
+                            Your booking window has expired.
+                        </h1>
+
+                        <p style="
+                            margin: 18px 0 0;
+                            color: #665952;
+                            font-size: 15px;
+                            line-height: 1.7;
+                        ">
+                            Hello
+                            <strong th:text="${customerName}">
+                                Traveler
+                            </strong>,
+                        </p>
+
+                        <p style="
+                            margin: 10px 0 0;
+                            color: #665952;
+                            font-size: 15px;
+                            line-height: 1.7;
+                        ">
+                            We couldn't confirm your reservation because
+                            the payment was not completed within the
+                            allowed payment window.
+                        </p>
+
+
+                        <!-- Status -->
+
+                        <div style="
+                            margin-top: 30px;
+                            padding: 20px;
+                            background-color: #f5efe7;
+                            border-left: 3px solid #c69a62;
+                        ">
+
+                            <p style="
+                                margin: 0;
+                                color: #2f241f;
+                                font-size: 14px;
+                                font-weight: bold;
+                            ">
+                                Reservation released
+                            </p>
+
+                            <p style="
+                                margin: 7px 0 0;
+                                color: #665952;
+                                font-size: 13px;
+                                line-height: 1.6;
+                            ">
+                                The room was released automatically
+                                after the payment window ended.
+                            </p>
+
+                        </div>
+
+
+                        <!-- Booking Details -->
+
+                        <h2 style="
+                            margin: 34px 0 12px;
+                            color: #2f241f;
+                            font-size: 17px;
+                        ">
+                            Booking Details
+                        </h2>
+
+                        <table width="100%"
+                               cellpadding="0"
+                               cellspacing="0"
+                               border="0"
+                               style="
+                                   border: 1px solid #e5ddd3;
+                                   border-radius: 12px;
+                               ">
+
+                            <tr>
+                                <td width="42%"
+                                    style="
+                                        padding: 15px 20px;
+                                        color: #796d65;
+                                        font-size: 13px;
+                                    ">
+                                    Booking ID
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                "
+                                    th:text="${bookingId}">
+                                    12345
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Hotel
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${hotelName}">
+                                    Hotel Name
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Amount
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    ₹<span th:text="${amountPaid}">
+                                        0.00
+                                    </span>
+                                </td>
+                            </tr>
+
+                        </table>
+
+
+                        <!-- Payment Issue -->
+
+                        <h2 style="
+                            margin: 34px 0 12px;
+                            color: #2f241f;
+                            font-size: 17px;
+                        ">
+                            If your payment was deducted
+                        </h2>
+
+                        <p style="
+                            margin: 0;
+                            color: #665952;
+                            font-size: 14px;
+                            line-height: 1.8;
+                        ">
+                            If your payment was deducted even though
+                            the booking expired, please contact our
+                            support team before making another payment.
+                            We'll help you resolve the issue.
+                        </p>
+
+
+                        <!-- New Booking -->
+
+                        <div style="
+                            margin-top: 30px;
+                            padding: 20px;
+                            background-color: #faf7f2;
+                            border: 1px solid #e5ddd3;
+                            border-radius: 10px;
+                        ">
+
+                            <p style="
+                                margin: 0;
+                                color: #2f241f;
+                                font-size: 14px;
+                                font-weight: bold;
+                            ">
+                                Looking for another stay?
+                            </p>
+
+                            <p style="
+                                margin: 7px 0 0;
+                                color: #665952;
+                                font-size: 13px;
+                                line-height: 1.6;
+                            ">
+                                You can make a new booking on BookMyStay
+                                at any time, subject to availability.
+                            </p>
+
+                        </div>
+
+
+                        <!-- Support -->
+
+                        <p style="
+                            margin: 30px 0 0;
+                            color: #665952;
+                            font-size: 14px;
+                            line-height: 1.7;
+                        ">
+                            Need help? Reply to this email and our support
+                            team will be happy to assist you.
+                        </p>
+
+                    </td>
+                </tr>
+
+
+                <!-- Footer -->
+
+                <tr>
+                    <td style="
+                        padding: 25px 35px;
+                        background-color: #f5efe7;
+                        border-top: 1px solid #e5ddd3;
+                    ">
+
+                        <p style="
+                            margin: 0;
+                            color: #2f241f;
+                            font-size: 13px;
+                            font-weight: bold;
+                        ">
+                            Team BookMyStay
+                        </p>
+
+                        <p style="
+                            margin: 6px 0 0;
+                            color: #796d65;
+                            font-size: 12px;
+                        ">
+                            Stay • Explore • Repeat
+                        </p>
+
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+
+</table>
+
+</body>
+</html>

@@ -8,6 +8,8 @@ import com.tarsem.emailservice.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 @Slf4j
 @Service
@@ -15,184 +17,116 @@ import org.springframework.stereotype.Service;
 public class EmailServiceImpl implements EmailService {
 
     private final SMTPEmailProvider emailProvider;
+    private final SpringTemplateEngine templateEngine;
 
-    public void sendBookingConfirmationEmail(BookingConfirmedEvent event) {
-        log.info("Preparing booking confirmation email for bookingId={}", event.getBookingId());
+    @Override
+    public void sendBookingConfirmationEmail(
+            BookingConfirmedEvent event
+    ) {
 
-        String subject = "Hey Traveler : Here is your room";
+        log.info(
+                "Preparing booking confirmation email for bookingId={}",
+                event.getBookingId()
+        );
 
-        String body = String.format("""
-Hey %s!
+        Context context = new Context();
 
-YOUR BOOKING IS LOCKED IN!
-Great news! Your stay has been confirmed and you're all set. 🏨✨
+        context.setVariable("customerName", event.getCustomerName());
+        context.setVariable("bookingId", event.getBookingId());
+        context.setVariable("hotelName", event.getHotelName());
+        context.setVariable("roomType", event.getRoomType());
+        context.setVariable("checkInDate", event.getCheckInDate());
+        context.setVariable(
+                "checkOutDate",
+                event.getCheckOutDate() != null
+                        ? event.getCheckOutDate()
+                        : "N/A"
+        );
+        context.setVariable("amountPaid", event.getAmountPaid());
 
-📋 BOOKING SUMMARY
-━━━━━━━━━━━━━━━━━━━━━━━
-
-Booking ID   : %d
-Hotel        : %s
-Room Type    : %s
-Check-In     : %s
-Check-Out    : %s
-Amount Paid  : ₹%.2f
-━━━━━━━━━━━━━━━━━━━━━━━
-
-🚀 Before You Go
-
-✅ Carry a valid government-issued ID
-✅ Reach the hotel after the check-in time
-✅ Keep this email handy during your trip
-
-💙 Thanks for choosing BookMyStay.
-
-We can't wait to host you. Have an amazing trip and make some unforgettable memories! 🌍✨
-
-Need help?
-Just reply to this email—we're always happy to help.
-
-Cheers,
-❤️ Team BookMyStay
-
-Stay • Explore • Repeat ✈️
-""",
-                event.getCustomerName(),
-                event.getBookingId(),
-                event.getHotelName(),
-                event.getRoomType(),
-                event.getCheckInDate(),
-                event.getCheckOutDate() != null ? event.getCheckOutDate() : "N/A",
-                event.getAmountPaid()
+        String body = templateEngine.process(
+                "email/booking-confirmed",
+                context
         );
 
         emailProvider.sendEmail(
                 event.getCustomerEmail(),
-                subject,
+                "Booking Confirmed | BookMyStay",
                 body
         );
 
-        log.info("Booking confirmation email sent successfully for bookingId={}",
-                event.getBookingId());
-
+        log.info(
+                "Booking confirmation email sent successfully for bookingId={}",
+                event.getBookingId()
+        );
     }
 
     @Override
-    public void sendBookingCancellationEmail(BookingCancelledEvent event) {
-        log.info("Preparing booking cancellation email for bookingId={}", event.getBookingId());
+    public void sendBookingCancellationEmail(
+            BookingCancelledEvent event
+    ) {
 
-        String subject = "Booking Cancelled | BookMyStay";
+        log.info(
+                "Preparing booking cancellation email for bookingId={}",
+                event.getBookingId()
+        );
 
-        String body = String.format("""
-Hey %s! 👋
+        Context context = new Context();
 
-YOUR BOOKING HAS BEEN CANCELLED
+        context.setVariable("customerName", event.getCustomerName());
+        context.setVariable("bookingId", event.getBookingId());
+        context.setVariable("hotelName", event.getHotelName());
+        context.setVariable("roomType", event.getRoomType());
+        context.setVariable("refundAmount", event.getRefundAmount());
 
-We're sorry to let you know that your booking has been cancelled.
-
-━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 CANCELLATION DETAILS
-
-🆔 Booking ID   : %d
-🏨 Hotel        : %s
-🛏️ Room Type    : %s
-💰 Refund Amount: ₹%.2f
-━━━━━━━━━━━━━━━━━━━━━━━
-
-ℹ️ What Happens Next
-
-✅ If you're eligible for a refund, it will be processed to your original payment method.
-✅ Refunds may take 5–7 business days depending on your bank.
-✅ You can make a new booking anytime on BookMyStay.
-
-
-💙 Thank you for choosing BookMyStay.
-
-We hope to welcome you on your next trip. Safe travels, and we look forward to serving you again! 🌍✨
-
-Need help?
-Just reply to this email—we're always happy to help.
-
-Cheers,
-❤️ Team BookMyStay
-
-Stay • Explore • Repeat ✈️
-""",
-                event.getCustomerName(),
-                event.getBookingId(),
-                event.getHotelName(),
-                event.getRoomType(),
-                event.getRefundAmount()
-
+        String body = templateEngine.process(
+                "email/booking-cancelled",
+                context
         );
 
         emailProvider.sendEmail(
                 event.getCustomerEmail(),
-                subject,
+                "Booking Cancelled | BookMyStay",
                 body
         );
 
-        log.info("Booking cancellation email sent successfully for bookingId={}",
-                event.getBookingId());
-
+        log.info(
+                "Booking cancellation email sent successfully for bookingId={}",
+                event.getBookingId()
+        );
     }
 
     @Override
-    public void sendBookingExpirationEmail(BookingExpiredEvent event) {
-        log.info("Preparing booking expiration email for bookingId={}", event.getBookingId());
+    public void sendBookingExpirationEmail(
+            BookingExpiredEvent event
+    ) {
 
-        String subject = "Booking Expired | BookMyStay";
-        String body = String.format("""
-Hey %s! 👋
+        log.info(
+                "Preparing booking expiration email for bookingId={}",
+                event.getBookingId()
+        );
 
-YOUR BOOKING HAS EXPIRED ⏰
+        Context context = new Context();
 
-Unfortunately, we couldn't confirm your booking because the payment window expired before the payment was completed.
+        context.setVariable("customerName", event.getCustomerName());
+        context.setVariable("bookingId", event.getBookingId());
+        context.setVariable("hotelName", event.getHotelName());
+        context.setVariable("amountPaid", event.getAmountPaid());
 
-━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 BOOKING DETAILS
-
-🆔 Booking ID   : %d
-🏨 Hotel        : %s
-💰 Amount       : ₹%.2f
-━━━━━━━━━━━━━━━━━━━━━━━
-
-ℹ️ What Happened?
-
-⏳ Every booking is reserved for a limited time to ensure fair availability.
-❌ Since the payment wasn't completed within the allowed time, your booking has been automatically cancelled.
-
-What's Next?
-You can book the same hotel again at any time (subject to availability).
-If your payment was deducted unexpectedly, please contact our support team and we'll help resolve it promptly.
-
-💙 Thank you for choosing BookMyStay.
-
-We hope to help you plan your next stay soon. 🌍✨
-
-Need help?
-Just reply to this email—we're always happy to help.
-
-Cheers,
-❤️ Team BookMyStay
-
-Stay • Explore • Repeat ✈️
-""",
-                event.getCustomerName(),
-                event.getBookingId(),
-                event.getHotelName(),
-                event.getAmountPaid()
+        String body = templateEngine.process(
+                "email/booking-expired",
+                context
         );
 
         emailProvider.sendEmail(
                 event.getCustomerEmail(),
-                subject,
+                "Booking Expired | BookMyStay",
                 body
         );
 
-        log.info("Booking expiration email sent successfully for bookingId={}",
-                event.getBookingId());
-
+        log.info(
+                "Booking expiration email sent successfully for bookingId={}",
+                event.getBookingId()
+        );
     }
 }

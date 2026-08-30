@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Booking Confirmed | BookMyStay</title>
+</head>
+
+<body style="
+    margin: 0;
+    padding: 0;
+    background-color: #f4efe8;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #2f241f;
+">
+
+<table width="100%"
+       cellpadding="0"
+       cellspacing="0"
+       border="0"
+       style="
+           background-color: #f4efe8;
+           padding: 40px 15px;
+       ">
+
+    <tr>
+        <td align="center">
+
+            <!-- Main Card -->
+
+            <table width="620"
+                   cellpadding="0"
+                   cellspacing="0"
+                   border="0"
+                   style="
+                       width: 100%;
+                       max-width: 620px;
+                       background-color: #fffdf9;
+                       border-radius: 16px;
+                       overflow: hidden;
+                   ">
+
+                <!-- Brand Header -->
+
+                <tr>
+                    <td style="
+                        background-color: #2f241f;
+                        padding: 28px 35px;
+                    ">
+
+                        <p style="
+                            margin: 0;
+                            color: #c69a62;
+                            font-size: 12px;
+                            font-weight: bold;
+                            letter-spacing: 2px;
+                            text-transform: uppercase;
+                        ">
+                            BOOKMYSTAY
+                        </p>
+
+                        <p style="
+                            margin: 8px 0 0;
+                            color: #ffffff;
+                            font-size: 13px;
+                        ">
+                            Your stay, thoughtfully booked.
+                        </p>
+
+                    </td>
+                </tr>
+
+
+                <!-- Main Content -->
+
+                <tr>
+                    <td style="padding: 42px 35px;">
+
+                        <p style="
+                            margin: 0 0 10px;
+                            color: #a47745;
+                            font-size: 12px;
+                            font-weight: bold;
+                            letter-spacing: 1.5px;
+                            text-transform: uppercase;
+                        ">
+                            Booking Confirmed
+                        </p>
+
+                        <h1 style="
+                            margin: 0;
+                            color: #2f241f;
+                            font-size: 30px;
+                            line-height: 1.25;
+                            font-weight: 600;
+                        ">
+                            Your stay is confirmed.
+                        </h1>
+
+                        <p style="
+                            margin: 18px 0 0;
+                            color: #665952;
+                            font-size: 15px;
+                            line-height: 1.7;
+                        ">
+                            Hello
+                            <strong th:text="${customerName}">
+                                Traveler
+                            </strong>,
+                        </p>
+
+                        <p style="
+                            margin: 10px 0 0;
+                            color: #665952;
+                            font-size: 15px;
+                            line-height: 1.7;
+                        ">
+                            Your reservation has been successfully
+                            confirmed. Here are the details of your stay.
+                        </p>
+
+
+                        <!-- Booking Details -->
+
+                        <table width="100%"
+                               cellpadding="0"
+                               cellspacing="0"
+                               border="0"
+                               style="
+                                   margin-top: 32px;
+                                   border: 1px solid #e5ddd3;
+                                   border-radius: 12px;
+                               ">
+
+                            <tr>
+                                <td colspan="2"
+                                    style="
+                                        padding: 18px 20px;
+                                        background-color: #f5efe7;
+                                        color: #2f241f;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                    ">
+                                    Reservation Details
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td width="42%"
+                                    style="
+                                        padding: 15px 20px;
+                                        color: #796d65;
+                                        font-size: 13px;
+                                        border-top: 1px solid #eee7df;
+                                    ">
+                                    Booking ID
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${bookingId}">
+                                    12345
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Hotel
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${hotelName}">
+                                    Hotel Name
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Room Type
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${roomType}">
+                                    Deluxe Room
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Check-In
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${checkInDate}">
+                                    2026-09-01
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Check-Out
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #2f241f;
+                                    font-size: 14px;
+                                    border-top: 1px solid #eee7df;
+                                "
+                                    th:text="${checkOutDate}">
+                                    2026-09-05
+                                </td>
+                            </tr>
+
+
+                            <tr>
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #796d65;
+                                    font-size: 13px;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    Amount Paid
+                                </td>
+
+                                <td style="
+                                    padding: 15px 20px;
+                                    color: #a47745;
+                                    font-size: 15px;
+                                    font-weight: bold;
+                                    border-top: 1px solid #eee7df;
+                                ">
+                                    ₹<span th:text="${amountPaid}">0.00</span>
+                                </td>
+                            </tr>
+
+                        </table>
+
+
+                        <!-- Before You Go -->
+
+                        <h2 style="
+                            margin: 34px 0 12px;
+                            color: #2f241f;
+                            font-size: 17px;
+                        ">
+                            Before you arrive
+                        </h2>
+
+                        <p style="
+                            margin: 0;
+                            color: #665952;
+                            font-size: 14px;
+                            line-height: 1.8;
+                        ">
+                            Please carry a valid government-issued ID
+                            and keep your booking details accessible
+                            when checking in.
+                        </p>
+
+
+                        <!-- Closing -->
+
+                        <p style="
+                            margin: 32px 0 0;
+                            color: #665952;
+                            font-size: 14px;
+                            line-height: 1.7;
+                        ">
+                            Thank you for choosing BookMyStay.
+                            We hope you have a comfortable and memorable stay.
+                        </p>
+
+                    </td>
+                </tr>
+
+
+                <!-- Footer -->
+
+                <tr>
+                    <td style="
+                        padding: 25px 35px;
+                        background-color: #f5efe7;
+                        border-top: 1px solid #e5ddd3;
+                    ">
+
+                        <p style="
+                            margin: 0;
+                            color: #2f241f;
+                            font-size: 13px;
+                            font-weight: bold;
+                        ">
+                            Team BookMyStay
+                        </p>
+
+                        <p style="
+                            margin: 6px 0 0;
+                            color: #796d65;
+                            font-size: 12px;
+                        ">
+                            Stay • Explore • Repeat
+                        </p>
+
+                    </td>
+                </tr>
+
+            </table>
+
+        </td>
+    </tr>
+
+</table>
+
+</body>
+</html>
+
