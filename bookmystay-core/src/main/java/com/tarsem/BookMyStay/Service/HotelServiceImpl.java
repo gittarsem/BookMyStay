@@ -11,11 +11,7 @@ import com.tarsem.BookMyStay.Repositroy.RoomTypePricingRepository;
 import com.tarsem.BookMyStay.Service.Interfaces.CloudinaryService;
 import com.tarsem.BookMyStay.Service.Interfaces.HotelService;
 import com.tarsem.BookMyStay.Service.Interfaces.InventoryService;
-import com.tarsem.BookMyStay.dto.hotel.HotelPricingDTO;
-import com.tarsem.BookMyStay.dto.hotel.HotelInfoDTO;
-import com.tarsem.BookMyStay.dto.hotel.HotelRequestDTO;
-import com.tarsem.BookMyStay.dto.hotel.HotelResponseDTO;
-import com.tarsem.BookMyStay.dto.hotel.RoomDTO;
+import com.tarsem.BookMyStay.dto.hotel.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -77,7 +73,19 @@ public class HotelServiceImpl implements HotelService {
     public HotelResponseDTO getHotel(Long hotelId) throws UnAuthorisedException {
         log.info("Getting the hotel with ID: {}",hotelId);
         HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
-        return modelMapper.map(hotel,HotelResponseDTO.class);
+        HotelResponseDTO response=modelMapper.map(hotel,HotelResponseDTO.class);
+        response.setImageUrl(
+                hotel.getImages() != null && !hotel.getImages().isEmpty()
+                        ? hotel.getImages().getFirst()
+                        : null
+        );
+
+        response.setNumberOfRooms(
+                hotel.getRooms() != null
+                        ? hotel.getRooms().size()
+                        : 0
+        );
+        return response;
     }
 
 
@@ -153,23 +161,88 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "hotels", key = "#hotelId")
+    @Cacheable(value = "hotel_info", key = "#hotelId")
     public HotelInfoDTO findHotelById(Long hotelId) {
-        HotelEntity hotel= hotelRepository.findById(hotelId).orElseThrow(
-                ()-> new HotelNotFoundException("Hotel with this id does not exist")
-        );
-        List<RoomDTO> roomsList=hotel.getRooms()
-                .stream()
-                .map(
-                        (el)->modelMapper.map(el,RoomDTO.class)
 
-                )
+        HotelEntity hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(
+                        () -> new HotelNotFoundException(
+                                "Hotel with this id does not exist"
+                        )
+                );
+
+        List<RoomEntity> rooms =
+                hotel.getRooms() != null
+                        ? hotel.getRooms()
+                        : new ArrayList<>();
+
+        List<RoomDTO> roomsList = rooms.stream()
+                .map(room -> modelMapper.map(room, RoomDTO.class))
                 .toList();
-        List<String> images = new ArrayList<>(hotel.getImages());
-        List<HotelAmenity> amenities = new ArrayList<>(hotel.getAmenities());
+
+        List<String> images = hotel.getImages() != null
+                ? new ArrayList<>(hotel.getImages())
+                : new ArrayList<>();
+
+        List<HotelAmenity> amenities = hotel.getAmenities() != null
+                ? new ArrayList<>(hotel.getAmenities())
+                : new ArrayList<>();
+
+        HotelResponseDTO hotelResponse =
+                modelMapper.map(hotel, HotelResponseDTO.class);
+
+        hotelResponse.setImageUrl(
+                !images.isEmpty()
+                        ? images.getFirst()
+                        : null
+        );
+
+        hotelResponse.setNumberOfRooms(
+                rooms.size()
+        );
+
+        List<RoomTypeDTO> roomTypes =
+                hotel.getRoomTypePricingEntities() == null
+                        ? new ArrayList<>()
+                        : hotel.getRoomTypePricingEntities()
+                        .stream()
+                        .map(pricing -> {
+
+                            List<RoomEntity> roomsOfType =
+                                    rooms.stream()
+                                            .filter(room ->
+                                                    room.getRoomType()
+                                                            == pricing.getRoomType()
+                                            )
+                                            .toList();
+
+                            int totalRooms =
+                                    roomsOfType.size();
+
+                            int capacity =
+                                    roomsOfType.stream()
+                                            .mapToInt(
+                                                    RoomEntity::getCapacity
+                                            )
+                                            .max()
+                                            .orElse(0);
+
+                            return new RoomTypeDTO(
+                                    pricing.getRoomType(),
+                                    pricing.getHourlyPrice(),
+                                    pricing.getDailyPrice(),
+                                    capacity,
+                                    totalRooms
+                            );
+                        })
+                        .toList();
+
+
+
         return HotelInfoDTO.builder()
-                .hotels(modelMapper.map(hotel, HotelResponseDTO.class))
+                .hotels(hotelResponse)
                 .rooms(roomsList)
+                .roomTypes(roomTypes)
                 .description(hotel.getDescription())
                 .images(images)
                 .amenities(amenities)
@@ -181,10 +254,35 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     public List<HotelResponseDTO> getMyHotels() {
-        List<HotelEntity> hotels=hotelRepository.findAllByOwner(giveMeCurrentUser());
-        return hotels.stream().map(
-                (hotel)->modelMapper.map(hotel,HotelResponseDTO.class)
-        ).toList();
+
+        List<HotelEntity> hotels =
+                hotelRepository.findAllByOwner(giveMeCurrentUser());
+
+        return hotels.stream()
+                .map(hotel -> {
+
+                    HotelResponseDTO response =
+                            modelMapper.map(
+                                    hotel,
+                                    HotelResponseDTO.class
+                            );
+
+                    response.setImageUrl(
+                            hotel.getImages() != null &&
+                                    !hotel.getImages().isEmpty()
+                                    ? hotel.getImages().getFirst()
+                                    : null
+                    );
+
+                    response.setNumberOfRooms(
+                            hotel.getRooms() != null
+                                    ? hotel.getRooms().size()
+                                    : 0
+                    );
+
+                    return response;
+                })
+                .toList();
     }
 
     @Override

@@ -18,6 +18,8 @@ public class HotelInfoDTO {
 
     private List<RoomDTO> rooms;
 
+    private List<RoomTypeDTO> roomTypes;
+
     private String description;
 
     private List<String> images;
@@ -29,5 +31,4 @@ public class HotelInfoDTO {
     private Integer reviewCount;
 
     private Double minPrice;
-
 }

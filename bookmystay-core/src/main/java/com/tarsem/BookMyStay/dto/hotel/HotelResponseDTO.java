@@ -9,5 +9,7 @@ public class HotelResponseDTO {
     private String name;
     private String city;
     private HotelContactInfo hotelContactInfo;
+    private String imageUrl;
+    private long numberOfRooms;
     private boolean active;
 }

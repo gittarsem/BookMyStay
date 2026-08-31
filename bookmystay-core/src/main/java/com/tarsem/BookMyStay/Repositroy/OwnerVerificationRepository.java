@@ -13,4 +13,8 @@ public interface OwnerVerificationRepository extends JpaRepository<OwnerVerifica
     Optional<OwnerVerificationEntity> findByUser(UserEntity user);
 
     List<OwnerVerificationEntity> findByVerificationStatus(VerificationStatus verificationStatus);
+
+    long countByVerificationStatus(
+            VerificationStatus status
+    );
 }

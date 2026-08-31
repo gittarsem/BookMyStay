@@ -24,10 +24,23 @@ public class RoomOwnerController {
     private RoomService roomService;
 
     @PostMapping
-    @Operation(summary = "Create a new room", description = "Adds a new room to a specific hotel")
-    public ResponseEntity<RoomDTO> addRoom(@PathVariable Long hotelId,@RequestBody RoomDTO roomDTO){
-        RoomDTO room=roomService.addNewRoom(roomDTO,hotelId);
-        return new ResponseEntity<>(roomDTO, HttpStatus.CREATED);
+    @Operation(
+            summary = "Create a new room",
+            description = "Adds a new room to a specific hotel"
+    )
+    public ResponseEntity<RoomDTO> addRoom(
+            @PathVariable Long hotelId,
+            @RequestBody RoomDTO roomDTO
+    ) {
+        RoomDTO room = roomService.addNewRoom(
+                roomDTO,
+                hotelId
+        );
+
+        return new ResponseEntity<>(
+                room,
+                HttpStatus.CREATED
+        );
     }
 
     @GetMapping

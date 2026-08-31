@@ -147,6 +147,7 @@ public class OwnerVerificationServiceImpl implements OwnerVerificationService {
                 .phoneNumber(verification.getPhoneNumber())
                 .businessAddress(verification.getBusinessAddress())
                 .verificationStatus(verification.getVerificationStatus())
+                .rejectionReason(verification.getRejectionReason())
                 .submittedAt(verification.getSubmittedAt())
                 .build();
     }

@@ -43,7 +43,7 @@ public class HotelController {
     @Operation(summary = "Get hotel details", description = "Get hotel information")
     public ResponseEntity<HotelResponseDTO> getHotel(@PathVariable Long hotelId){
         HotelResponseDTO hotel=hotelService.getHotel(hotelId);
-        return new ResponseEntity<>(hotel,HttpStatus.FOUND);
+        return ResponseEntity.ok(hotel);
     }
     
     @PutMapping("/{hotelId}")

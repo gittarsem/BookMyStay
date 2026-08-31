@@ -31,7 +31,7 @@ public class OwnerVerificationEntity {
     @Column(nullable = false)
     private GovernmentIdType governmentIdType;
 
-    @Column(nullable = false)
+    @Column(nullable = false,name="government_id_number")
     private String governmentIdNumber;
 
     @Column(nullable = false)
@@ -57,7 +57,7 @@ public class OwnerVerificationEntity {
     @Column(updatable = false)
     private LocalDateTime submittedAt;
 
-    @Column(length = 500)
+    @Column(length = 500, name = "rejection_reason")
     private String rejectionReason;
 
     private LocalDateTime reviewedAt;
