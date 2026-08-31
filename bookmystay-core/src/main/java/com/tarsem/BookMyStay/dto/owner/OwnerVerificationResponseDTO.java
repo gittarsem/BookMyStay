@@ -33,5 +33,7 @@ public class OwnerVerificationResponseDTO {
 
     private VerificationStatus verificationStatus;
 
+    private String rejectionReason;
+
     private LocalDateTime submittedAt;
 }

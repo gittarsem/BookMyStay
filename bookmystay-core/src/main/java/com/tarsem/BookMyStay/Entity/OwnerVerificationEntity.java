@@ -35,6 +35,12 @@ public class OwnerVerificationEntity {
     private String governmentIdNumber;
 
     @Column(nullable = false)
+    private String govtIdFront;
+
+    @Column(nullable = false)
+    private String govtIdBack;
+
+    @Column(nullable = false)
     private String businessName;
 
     @Column(nullable = false)

@@ -15,8 +15,4 @@ public class OwnerVerificationRequestDTO {
     private String phoneNumber;
     private GovernmentIdType governmentIdType;
     private String governmentIdNumber;
-
-    // temporary
-    private String governmentIdFrontUrl;
-    private String governmentIdBackUrl;
 }
