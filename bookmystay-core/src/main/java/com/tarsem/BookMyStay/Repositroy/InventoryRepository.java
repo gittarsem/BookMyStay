@@ -44,37 +44,39 @@ public interface InventoryRepository
     @Modifying
     @Transactional
     @Query(value = """
-            INSERT INTO inventory
-            (
-                room_id,
-                hotel_id,
-                city,
-                date,
-                book_count,
-                reserved_count,
-                total_count,
-                surge_factor,
-                price,
-                closed
-            )
-            SELECT
-                :roomId,
-                :hotelId,
-                :city,
-                gs::date,
-                0,
-                0,
-                :totalCount,
-                1.00,
-                :price,
-                false
-            FROM generate_series(
-                :startDate,
-                :endDate,
-                INTERVAL '1 day'
-            ) gs
-            ON CONFLICT (room_id, date) DO NOTHING
-            """, nativeQuery = true)
+    INSERT INTO inventory
+    (
+        room_id,
+        hotel_id,
+        city,
+        date,
+        book_count,
+        reserved_count,
+        total_count,
+        surge_factor,
+        price,
+        closed,
+        created_at
+    )
+    SELECT
+        :roomId,
+        :hotelId,
+        :city,
+        gs::date,
+        0,
+        0,
+        :totalCount,
+        1.00,
+        :price,
+        false,
+        CURRENT_TIMESTAMP
+    FROM generate_series(
+        :startDate,
+        :endDate,
+        INTERVAL '1 day'
+    ) gs
+    ON CONFLICT (room_id, date) DO NOTHING
+    """, nativeQuery = true)
     void initializeRoomInventory(
             @Param("roomId") Long roomId,
             @Param("hotelId") Long hotelId,
@@ -227,5 +229,11 @@ public interface InventoryRepository
     Optional<InventoryEntity> findAvailableInventoryForDate(
             @Param("roomId") Long roomId,
             @Param("date") LocalDate date
+    );
+
+    List<InventoryEntity> findByHotelIdAndDateBetweenOrderByDate(
+            Long hotelId,
+            LocalDate startDate,
+            LocalDate endDate
     );
 }

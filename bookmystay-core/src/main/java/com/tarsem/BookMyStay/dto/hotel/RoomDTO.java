@@ -9,7 +9,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoomDTO {
+
+    private Long id;
     private int capacity;
     private RoomType roomType;
-    private Double price;
 }

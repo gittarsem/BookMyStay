@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service.Interfaces;
 
 import com.tarsem.BookMyStay.dto.hotel.HotelSearchResponseDTO;
 import com.tarsem.BookMyStay.Entity.RoomEntity;
+import com.tarsem.BookMyStay.dto.inventory.HotelInventoryDTO;
 import com.tarsem.BookMyStay.dto.inventory.InventoryDTO;
 import com.tarsem.BookMyStay.dto.inventory.InventoryUpdateRequest;
 import org.jspecify.annotations.Nullable;
@@ -37,4 +38,10 @@ public interface InventoryService {
     ) throws IOException;
 
     public void scheduledInventoryJob();
+
+    List<HotelInventoryDTO> getHotelInventory(
+            Long hotelId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }

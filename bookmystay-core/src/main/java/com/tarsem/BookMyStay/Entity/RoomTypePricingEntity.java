@@ -16,10 +16,10 @@ import java.math.BigDecimal;
         name = "room_type_pricing",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        columnNames = {"hotelId","roomType"}
+                        name = "uk_hotel_room_type",
+                        columnNames = {"hotel_id", "room_type"}
                 )
         }
-
 )
 public class RoomTypePricingEntity {
 
@@ -27,7 +27,7 @@ public class RoomTypePricingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY,optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "hotel_id", nullable = false)
     private HotelEntity hotel;
 

@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,7 +15,7 @@ import java.util.List;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-@Table(name="room")
+@Table(name = "room")
 public class RoomEntity {
 
     @Id
@@ -34,15 +33,15 @@ public class RoomEntity {
     @Column(nullable = false)
     private int capacity;
 
-    @Column(nullable = false,precision = 10,scale = 2)
-    private BigDecimal price;
-
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime created_at;
 
-    @OneToMany(mappedBy = "room", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToMany(
+            mappedBy = "room",
+            fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL
+    )
     @JsonIgnore
     private List<InventoryEntity> inventories;
-
 }
