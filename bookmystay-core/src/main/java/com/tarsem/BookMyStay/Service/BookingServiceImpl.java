@@ -799,22 +799,94 @@ public class BookingServiceImpl implements BookingService {
         );
 
 
-        /*
-         * Payment
-         */
+
         PaymentEntity payment =
                 booking.getPayment();
 
+
+        /*
+         * =========================================================
+         * CASE 1:
+         *
+         * PAYMENT ENTITY EXISTS
+         * =========================================================
+         */
+
         if (payment != null) {
 
+            PaymentStatus paymentStatus =
+                    payment.getPaymentStatus();
+
             dto.setPaymentStatus(
-                    payment.getPaymentStatus()
+                    paymentStatus
             );
 
+
+            /*
+             * Pending payment:
+             *
+             * The amount that the customer needs to pay
+             * is the booking total price.
+             *
+             * Fallback to payment amount only if total price
+             * is not available.
+             */
+
+            if (paymentStatus ==
+                    PaymentStatus.PENDING) {
+
+                if (booking.getTotalPrice() != null) {
+
+                    dto.setAmount(
+                            booking.getTotalPrice()
+                    );
+
+                } else {
+
+                    dto.setAmount(
+                            payment.getAmount()
+                    );
+                }
+
+            } else {
+
+                /*
+                 * SUCCESS / FAILED / REFUNDED etc.
+                 */
+
+                dto.setAmount(
+                        payment.getAmount()
+                );
+            }
+
+        }
+        else if (
+                booking.getStatus() != null
+                        && "PAYMENT_PENDING".equals(
+                        booking.getStatus().name()
+                )
+        ) {
+
+            /*
+             * There is no PaymentEntity yet,
+             * but the booking requires payment.
+             */
+
+            dto.setPaymentStatus(
+                    PaymentStatus.PENDING
+            );
+
+
+            /*
+             * Use the booking's actual calculated
+             * total amount.
+             */
+
             dto.setAmount(
-                    payment.getAmount()
+                    booking.getTotalPrice()
             );
         }
+
 
 
         return dto;
@@ -862,10 +934,16 @@ public class BookingServiceImpl implements BookingService {
         dto.setBookingStatus(booking.getStatus());
 
         dto.setPaymentStatus(
-                booking.getPayment().getPaymentStatus());
+                booking.getPayment() != null
+                        ? booking.getPayment().getPaymentStatus()
+                        : PaymentStatus.PENDING
+        );
 
         dto.setAmount(
-                booking.getPayment().getAmount());
+                booking.getPayment()!=null
+                ? booking.getPayment().getAmount()
+                : booking.getTotalPrice()
+        );
 
         return dto;
     }
