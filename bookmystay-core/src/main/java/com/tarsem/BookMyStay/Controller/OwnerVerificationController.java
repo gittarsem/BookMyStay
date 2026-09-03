@@ -16,12 +16,13 @@ import java.nio.file.AccessDeniedException;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/apply")
 public class OwnerVerificationController {
 
     private final OwnerVerificationService verificationService;
 
     @PostMapping(
-            value = "/owner/apply",
+            value = "/owner",
             consumes = "multipart/form-data"
     )
     public ResponseEntity<String> requestOwnerVerification(
