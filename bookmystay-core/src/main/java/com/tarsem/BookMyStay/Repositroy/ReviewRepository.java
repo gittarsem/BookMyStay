@@ -22,4 +22,6 @@ public interface ReviewRepository extends JpaRepository<ReviewEntity,Long> {
     ReviewStatistics calculateHotelStatistics(@Param("hotelId") Long hotelId);
 
     Page<ReviewEntity> findByHotelId(Long hotelId, Pageable pageable);
+
+    Page<ReviewEntity> findByRating(Integer rating, Pageable pageable);
 }
