@@ -8,7 +8,7 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
-@Document(indexName = "hotels", createIndex = true)
+@Document(indexName = "hotels", createIndex = false)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 @AllArgsConstructor

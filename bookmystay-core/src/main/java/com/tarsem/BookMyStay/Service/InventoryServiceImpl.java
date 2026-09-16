@@ -66,12 +66,9 @@ public class InventoryServiceImpl implements InventoryService {
     private final HotelMinPriceRepository hotelMinPriceRepository;
     private final ElasticsearchClient elasticsearch;
     private final HotelRepository hotelRepository;
+    private final ElasticsearchAvailabilityService elasticsearchAvailabilityService;
 
     private static final int DAYS_AHEAD = 30;
-
-    // ============================================================
-    // INVENTORY INITIALIZATION
-    // ============================================================
 
     @Override
     @Transactional
@@ -142,10 +139,6 @@ public class InventoryServiceImpl implements InventoryService {
                     initializeRoom(room);
                 } catch (Exception exception) {
 
-                    /*
-                     * One room should not prevent inventory
-                     * initialization for all other rooms.
-                     */
                     log.error(
                             "Failed to initialize inventory for room {}",
                             room.getId(),
@@ -157,10 +150,6 @@ public class InventoryServiceImpl implements InventoryService {
 
         log.info("Inventory job completed");
     }
-
-    // ============================================================
-    // HOTEL INVENTORY
-    // ============================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -193,16 +182,10 @@ public class InventoryServiceImpl implements InventoryService {
             );
         }
 
-        /*
-         * Missing dates should return an empty result.
-         */
         if (startDate == null || endDate == null) {
             return List.of();
         }
 
-        /*
-         * Invalid date range should return an empty result.
-         */
         if (startDate.isAfter(endDate)) {
             return List.of();
         }
@@ -219,19 +202,6 @@ public class InventoryServiceImpl implements InventoryService {
             return List.of();
         }
 
-        /*
-         * Group inventory:
-         *
-         * Date
-         *   └── Room Type
-         *          ├── total rooms
-         *          ├── booked rooms
-         *          ├── reserved rooms
-         *          ├── available rooms
-         *          ├── closed
-         *          ├── price
-         *          └── surge factor
-         */
         return inventories
                 .stream()
                 .collect(
@@ -302,11 +272,6 @@ public class InventoryServiceImpl implements InventoryService {
                                                                 - reservedRooms
                                                 );
 
-                                        /*
-                                         * If any physical room of this
-                                         * room type is closed for the date,
-                                         * mark the room type as closed.
-                                         */
                                         boolean closed =
                                                 rows.stream()
                                                         .anyMatch(
@@ -316,12 +281,6 @@ public class InventoryServiceImpl implements InventoryService {
                                                                         )
                                                         );
 
-                                        /*
-                                         * Pricing is configured at the
-                                         * room-type level, so the first
-                                         * inventory row is sufficient for
-                                         * displaying the price/surge.
-                                         */
                                         InventoryEntity first =
                                                 rows.get(0);
 
@@ -346,25 +305,11 @@ public class InventoryServiceImpl implements InventoryService {
                 .toList();
     }
 
-    // ============================================================
-    // DELETE INVENTORY
-    // ============================================================
-
     @Override
     @Transactional
     public void deleteAllInventories(RoomEntity room) {
-
-        log.info(
-                "Deleting inventories of room {}",
-                room.getId()
-        );
-
         inventoryRepository.deleteByRoom(room);
     }
-
-    // ============================================================
-    // HOTEL SEARCH
-    // ============================================================
 
     @Override
     @Cacheable(
@@ -394,16 +339,97 @@ public class InventoryServiceImpl implements InventoryService {
                 checkOutTime
         );
 
+        String normalizedSortField =
+                normalizeSortField(sortField);
+
+        String normalizedSortOrder =
+                normalizeSortOrder(sortOrder);
+
+        Boolean elasticsearchAvailable =
+                elasticsearchAvailabilityService.getStatus();
+
+        if (!Boolean.FALSE.equals(elasticsearchAvailable)) {
+
+            try {
+
+                HotelSearchResponseDTO result =
+                        searchUsingElasticsearch(
+                                keyword,
+                                city,
+                                minPrice,
+                                maxPrice,
+                                ratings,
+                                checkInDate,
+                                checkInTime,
+                                checkOutDate,
+                                checkOutTime,
+                                normalizedSortField,
+                                normalizedSortOrder,
+                                page,
+                                size
+                        );
+
+                elasticsearchAvailabilityService.markAvailable();
+
+                return result;
+
+            } catch (Exception exception) {
+
+                elasticsearchAvailabilityService.markUnavailable();
+
+                log.warn(
+                        "Elasticsearch search failed. Falling back to PostgreSQL.",
+                        exception
+                );
+            }
+        }
+
+        return searchUsingPostgres(
+                keyword,
+                city,
+                minPrice,
+                maxPrice,
+                ratings,
+                checkInDate,
+                checkInTime,
+                checkOutDate,
+                checkOutTime,
+                normalizedSortField,
+                normalizedSortOrder,
+                page,
+                size
+        );
+    }
+
+    private HotelSearchResponseDTO searchUsingElasticsearch(
+            String keyword,
+            String city,
+            Double minPrice,
+            Double maxPrice,
+            Double ratings,
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime,
+            String sortField,
+            String sortOrder,
+            int page,
+            int size
+    ) throws IOException {
+
         BoolQuery.Builder builder =
                 new BoolQuery.Builder();
 
-        if (keyword != null && !keyword.isEmpty()) {
+        if (keyword != null && !keyword.isBlank()) {
 
-            builder.must(
-                    b -> b.match(
-                            mm -> mm
+            String normalizedKeyword = keyword.trim().toLowerCase();
+
+            builder.filter(
+                    b -> b.wildcard(
+                            w -> w
                                     .field("name")
-                                    .query(keyword)
+                                    .value("*" + normalizedKeyword + "*")
+                                    .caseInsensitive(true)
                     )
             );
         }
@@ -416,13 +442,13 @@ public class InventoryServiceImpl implements InventoryService {
                 )
         );
 
-        if (city != null && !city.isEmpty()) {
+        if (city != null && !city.isBlank()) {
 
             builder.filter(
                     b -> b.term(
                             m -> m
-                                    .value(city.toLowerCase())
                                     .field("city")
+                                    .value(city.toLowerCase())
                     )
             );
         }
@@ -489,6 +515,13 @@ public class InventoryServiceImpl implements InventoryService {
                                                                         : SortOrder.Desc
                                                         )
                                         )
+                                )
+                                .sort(
+                                        so -> so.field(
+                                                f -> f
+                                                        .field("id")
+                                                        .order(SortOrder.Asc)
+                                        )
                                 ),
                         HotelDocument.class
                 );
@@ -501,13 +534,81 @@ public class InventoryServiceImpl implements InventoryService {
                         .filter(java.util.Objects::nonNull)
                         .toList();
 
-        if (checkInDate == null) {
+        hotels =
+                filterHotelsByAvailability(
+                        hotels,
+                        checkInDate,
+                        checkInTime,
+                        checkOutDate,
+                        checkOutTime
+                );
 
-            return createPaginatedResponse(
-                    hotels,
-                    page,
-                    size
-            );
+        return createPaginatedResponse(
+                hotels,
+                page,
+                size
+        );
+    }
+
+    private HotelSearchResponseDTO searchUsingPostgres(
+            String keyword,
+            String city,
+            Double minPrice,
+            Double maxPrice,
+            Double ratings,
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime,
+            String sortField,
+            String sortOrder,
+            int page,
+            int size
+    ) {
+
+        List<HotelEntity> hotelEntities =
+                hotelRepository.searchHotels(
+                        normalizeNullable(keyword),
+                        normalizeNullable(city),
+                        minPrice,
+                        maxPrice,
+                        ratings,
+                        sortField,
+                        sortOrder
+                );
+
+        List<HotelDocument> hotels =
+                hotelEntities
+                        .stream()
+                        .map(this::convertToHotelDocument)
+                        .toList();
+
+        hotels =
+                filterHotelsByAvailability(
+                        hotels,
+                        checkInDate,
+                        checkInTime,
+                        checkOutDate,
+                        checkOutTime
+                );
+
+        return createPaginatedResponse(
+                hotels,
+                page,
+                size
+        );
+    }
+
+    private List<HotelDocument> filterHotelsByAvailability(
+            List<HotelDocument> hotels,
+            LocalDate checkInDate,
+            LocalTime checkInTime,
+            LocalDate checkOutDate,
+            LocalTime checkOutTime
+    ) {
+
+        if (checkInDate == null) {
+            return hotels;
         }
 
         LocalDateTime checkIn =
@@ -521,11 +622,6 @@ public class InventoryServiceImpl implements InventoryService {
                         checkOutDate,
                         checkOutTime
                 );
-
-        LocalDate inventoryEndDate =
-                checkInDate.equals(checkOutDate)
-                        ? checkInDate.plusDays(1)
-                        : checkOutDate;
 
         Collection<String> activeStatuses =
                 List.of(
@@ -541,11 +637,13 @@ public class InventoryServiceImpl implements InventoryService {
                 );
 
         Set<String> availableHotels =
-                availableHotelIds.stream()
+                availableHotelIds
+                        .stream()
                         .map(String::valueOf)
                         .collect(Collectors.toSet());
 
-        hotels = hotels.stream()
+        return hotels
+                .stream()
                 .filter(
                         hotel ->
                                 availableHotels.contains(
@@ -553,17 +651,74 @@ public class InventoryServiceImpl implements InventoryService {
                                 )
                 )
                 .toList();
+    }
 
-        return createPaginatedResponse(
-                hotels,
-                page,
-                size
+    private HotelDocument convertToHotelDocument(
+            HotelEntity hotel
+    ) {
+
+        String thumbnail = null;
+
+        if (hotel.getImages() != null &&
+                !hotel.getImages().isEmpty()) {
+
+            thumbnail =
+                    hotel.getImages().get(0);
+        }
+
+        return new HotelDocument(
+                String.valueOf(hotel.getId()),
+                hotel.getName(),
+                hotel.getCity(),
+                hotel.getMinPrice(),
+                hotel.getAverageRating(),
+                hotel.getTotalReviews(),
+                hotel.getActive(),
+                thumbnail
         );
     }
 
-    // ============================================================
-    // SEARCH DATE VALIDATION
-    // ============================================================
+    private String normalizeSortField(
+            String sortField
+    ) {
+
+        if (sortField == null ||
+                sortField.isBlank()) {
+
+            return "price";
+        }
+
+        return switch (sortField.toLowerCase()) {
+            case "price" -> "price";
+            case "name" -> "name";
+            case "ratings" -> "ratings";
+            default -> "price";
+        };
+    }
+
+    private String normalizeSortOrder(
+            String sortOrder
+    ) {
+
+        if ("desc".equalsIgnoreCase(sortOrder)) {
+            return "desc";
+        }
+
+        return "asc";
+    }
+
+    private String normalizeNullable(
+            String value
+    ) {
+
+        if (value == null ||
+                value.isBlank()) {
+
+            return null;
+        }
+
+        return value.trim();
+    }
 
     private void validateSearchDates(
             LocalDate checkInDate,
@@ -616,17 +771,14 @@ public class InventoryServiceImpl implements InventoryService {
         }
     }
 
-    // ============================================================
-    // PAGINATION
-    // ============================================================
-
     private HotelSearchResponseDTO createPaginatedResponse(
             List<HotelDocument> hotels,
             int page,
             int size
     ) {
 
-        int start = page * size;
+        int start =
+                page * size;
 
         if (start >= hotels.size()) {
 
@@ -657,10 +809,6 @@ public class InventoryServiceImpl implements InventoryService {
                 size
         );
     }
-
-    // ============================================================
-    // ROOM INVENTORY
-    // ============================================================
 
     @Override
     @Transactional(readOnly = true)
@@ -700,10 +848,6 @@ public class InventoryServiceImpl implements InventoryService {
                 )
                 .toList();
     }
-
-    // ============================================================
-    // UPDATE INVENTORY
-    // ============================================================
 
     @Override
     @Transactional
