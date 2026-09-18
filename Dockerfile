@@ -22,6 +22,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 COPY --from=build /app/bookmystay-core/target/*.jar app.jar
+COPY bookmystay-core/kafka/ca.pem /app/kafka/ca.pem
 
 EXPOSE 8080
 
