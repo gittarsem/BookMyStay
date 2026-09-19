@@ -64,7 +64,9 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/hotels/*/reviews"
+                                "/hotels/*/reviews",
+                                "/hotels/*/info",
+                                "/hotels/*/rooms"
                         ).permitAll()
 
                         .requestMatchers(
