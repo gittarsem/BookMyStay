@@ -1,4 +1,4 @@
-# 🏨 BookMyStay — Hotel Booking Platform
+# BookMyStay — Hotel Booking Platform
 
 <p align="center">
   <img src="https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk" />
@@ -12,125 +12,394 @@
 </p>
 
 <p align="center">
-  <b>A full-stack hotel booking platform built with Java, Spring Boot, PostgreSQL, Redis, Elasticsearch, Kafka and Razorpay.</b>
+  <b>Discover. Book. Stay.</b>
+</p>
+
+<p align="center">
+  A full-stack hotel booking platform for guests, hotel owners, and administrators.
 </p>
 
 <p align="center">
   <a href="https://bookmystay-frontend-one.vercel.app">Live</a>
   •
   <a href="https://github.com/gittarsem/BookMyStay">Backend</a>
-  •
+  &nbsp;•&nbsp;
   <a href="https://github.com/gittarsem/BookMyStay-Frontend">Frontend</a>
+  &nbsp;•&nbsp;
+  <a href="https://bookmystay-frontend-one.vercel.app">Live Frontend</a>
 </p>
 
 ---
 
-## 📌 Overview
+# Contents
 
-**BookMyStay** is a full-stack hotel booking platform designed to provide a complete hotel reservation ecosystem for:
-
-- 👤 Guests
-- 🏨 Hotel Owners
-- 🛡️ Administrators
-
-The platform covers the complete hotel booking lifecycle — from hotel discovery and room selection to inventory reservation, guest management, payment processing, booking confirmation, reviews and email notifications.
-
-The backend is built using **Java 21 and Spring Boot** with a modular architecture and event-driven communication using **Apache Kafka**.
-
----
-
-## ✨ Key Features
-
-### 👤 Guest Features
-
-- User registration and login
-- JWT-based authentication
-- Hotel search
-- City-based hotel discovery
-- Room type selection
-- Guest-based room selection
-- Inventory availability checking
-- Dynamic room pricing
-- Booking creation
-- Inventory reservation
-- Guest information management
-- Razorpay payment integration
-- Payment verification
-- Booking confirmation
-- Booking history
-- Booking details
-- Booking cancellation
-- Review and rating system
-- Email notifications
-
-### 🏨 Hotel Owner Features
-
-- Owner registration/application
-- Hotel creation and management
-- Room management
-- Room type management
-- Inventory management
-- Room pricing management
-- Booking management
-- Revenue tracking
-- Review management
-- Owner verification workflow
-- Verification resubmission
-- Owner settings
-
-### 🛡️ Admin Features
-
-- Admin dashboard
-- User management
-- Hotel management
-- Owner management
-- Hotel verification
-- Owner verification
-- Platform-level monitoring
-- Administrative controls
+- [ What is BookMyStay?](#-what-is-bookmystay)
+- [ Application Preview](#-application-preview)
+- [ What Can You Do?](#-what-can-you-do)
+- [ Who Uses BookMyStay?](#-who-uses-bookmystay)
+- [ How Booking Works](#-how-booking-works)
+- [ How Payment Works](#-how-payment-works)
+- [ What Can Hotel Owners Do?](#-what-can-hotel-owners-do)
+- [️ What Can Administrators Do?](#-what-can-administrators-do)
+- [ How the Platform Works](#-how-the-platform-works)
+- [️ Technology Stack](#-technology-stack)
+- [ Authentication & Authorization](#-authentication--authorization)
+- [ Inventory Management](#-inventory-management)
+- [ Hotel Search](#-hotel-search)
+- [ Redis Caching](#-redis-caching)
+- [ Event-Driven Architecture](#-event-driven-architecture)
+- [ Email Service](#-email-service)
+- [️ Database](#-database)
+- [ Docker](#-docker)
+- [ Run Locally](#-run-locally)
+- [️ Environment Configuration](#-environment-configuration)
+- [ API Documentation](#-api-documentation)
+- [ Security](#-security)
+- [ Scalability](#-scalability)
+- [ Project Documentation](#-project-documentation)
+- [️ Frontend](#️-frontend)
+- [️ Future Improvements](#️-future-improvements)
+- [‍ Author](#-author)
 
 ---
 
-## 🏗️ System Architecture
+# What is BookMyStay?
+
+**BookMyStay** is a full-stack hotel booking platform designed to cover the complete hotel reservation experience — from discovering a hotel to completing a booking and managing the stay.
+
+It supports three major user groups:
+
+-  **Guests** — discover hotels, book rooms, pay, manage bookings, and leave reviews.
+-  **Hotel Owners** — create and manage properties, rooms, inventory, bookings, pricing, and revenue.
+- ️ **Administrators** — manage users, hotels, and owner verification across the platform.
+
+The platform combines a modern web interface with a Java/Spring Boot backend, PostgreSQL, Redis, Elasticsearch, Kafka, Razorpay, Docker, and a dedicated email service.
+
+---
+
+# Application Preview
+
+> Add your actual screenshots to `docs/screenshots/` and keep the filenames below.
+
+## Home
+
+![Home Page](docs/screenshots/home.png)
+
+## Hotel Search
+
+![Hotel Search](docs/screenshots/search.png)
+
+## Hotel Details
+
+![Hotel Details](docs/screenshots/hotel-details.png)
+
+## Booking
+
+![Booking Page](docs/screenshots/booking.png)
+
+## Payment
+
+![Payment Page](docs/screenshots/payment.png)
+
+## My Bookings
+
+![My Bookings](docs/screenshots/my-bookings.png)
+
+## Owner Dashboard
+
+![Owner Dashboard](docs/screenshots/owner-dashboard.png)
+
+## ️ Admin Dashboard
+
+![Admin Dashboard](docs/screenshots/admin-dashboard.png)
+
+For the complete application page gallery, see [ Pages & Screenshots](docs/PAGES.md).
+
+---
+
+# What Can You Do?
+
+## As a Guest
+
+A guest can:
+
+- Create an account and log in
+- Search hotels by city
+- Explore hotel details
+- Select a room type based on guest capacity
+- Check inventory availability
+- Create a booking
+- Add guest information
+- Pay securely through Razorpay
+- Receive booking confirmation
+- View booking history and details
+- Cancel bookings where supported
+- Write and manage reviews
+- Receive email notifications
+
+## As a Hotel Owner
+
+An approved owner can:
+
+- Apply to become an owner
+- Create and manage hotels
+- Manage rooms and room types
+- Manage inventory
+- Manage room pricing
+- View and manage bookings
+- Track revenue
+- Manage reviews
+- Complete owner verification
+- Resubmit verification information when required
+- Manage owner settings
+
+## ️ As an Administrator
+
+Administrators can:
+
+- Access the admin dashboard
+- Manage users
+- Manage hotels
+- Review owner applications
+- Verify hotels and owners
+- Manage platform-level data and controls
+
+---
+
+# Who Uses BookMyStay?
+
+```mermaid
+flowchart LR
+    USER[" Guest / User"]
+    OWNER[" Hotel Owner"]
+    ADMIN["️ Administrator"]
+
+    USER -->|"Discover & Book"| PLATFORM[" BookMyStay"]
+    OWNER -->|"Manage Property"| PLATFORM
+    ADMIN -->|"Manage Platform"| PLATFORM
+```
+
+## Guest → Owner Journey
+
+A normal user can enter the owner workflow by applying to become an owner.
+
+```mermaid
+flowchart TD
+    USER[" Registered User"]
+    APPLY["Apply as Owner"]
+    REVIEW["️ Admin Verification"]
+    DECISION{"Decision"}
+    OWNER[" Owner Access"]
+    RESUBMIT["Resubmit Verification"]
+
+    USER --> APPLY
+    APPLY --> REVIEW
+    REVIEW --> DECISION
+    DECISION -->|Approved| OWNER
+    DECISION -->|Rejected| RESUBMIT
+    RESUBMIT --> REVIEW
+```
+
+The backend remains responsible for the actual authorization and verification decision.
+
+---
+
+# How Booking Works
+
+The booking experience is designed around the hotel, room type, guest count, dates, and available inventory.
+
+```mermaid
+flowchart LR
+    SEARCH[" Search"] --> HOTEL[" Hotel Details"]
+    HOTEL --> ROOM["️ Select Room Type"]
+    ROOM --> BOOKING[" Create Booking"]
+    BOOKING --> GUEST[" Add Guests"]
+    GUEST --> PAYMENT[" Payment"]
+    PAYMENT --> RESULT{"Payment Result"}
+    RESULT -->|Success| CONFIRMED[" Booking Confirmed"]
+    RESULT -->|Failure / Expired| FAILED[" Booking Cancelled / Expired"]
+```
+
+At booking creation, the backend validates room capacity and inventory availability before reserving inventory.
+
+For the detailed backend sequence, see [ Booking Flow](docs/BOOKING-FLOW.md).
+
+---
+
+# How Payment Works
+
+BookMyStay uses **Razorpay** for online payments.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant B as BookMyStay Core
+    participant R as Razorpay
+    participant DB as PostgreSQL
+
+    U->>F: Start Payment
+    F->>B: Create Payment Order
+    B->>DB: Validate Booking
+    B->>R: Create Razorpay Order
+    R-->>B: Razorpay Order
+    B-->>F: Return Order
+    F->>R: Open Checkout
+    R-->>F: Payment Response
+    F->>B: Payment ID + Order ID + Signature
+    B->>R: Verify Payment
+    R-->>B: Payment Details
+    B->>B: Validate Signature / Order / Amount / Status
+    B->>DB: Update Payment
+    B->>DB: Confirm Booking
+    B-->>F: Payment Result
+```
+
+The backend verifies:
+
+- Payment status
+- Razorpay order ID
+- Payment amount
+- Payment information
+- Payment signature
+
+Detailed documentation: [ Payment Flow](docs/PAYMENT-FLOW.md).
+
+---
+
+# What Can Hotel Owners Do?
+
+The owner experience is focused on running a hotel property through the platform.
+
+```text
+Owner Dashboard
+      │
+      ├──  Hotels
+      ├── ️ Rooms
+      ├──  Inventory
+      ├──  Bookings
+      ├──  Revenue
+      ├── ⭐ Reviews
+      ├──  Verification
+      └── ️ Settings
+```
+
+Owners can create their property, configure rooms, manage availability and pricing, monitor bookings, and view revenue.
+
+---
+
+# ️ What Can Administrators Do?
+
+The admin portal provides platform-level controls.
+
+```text
+Admin Dashboard
+      │
+      ├──  Users
+      ├──  Hotels
+      ├──  Owner Verification
+      └── ️ Platform Administration
+```
+
+The administrator is responsible for platform-level management rather than normal guest booking operations.
+
+---
+
+
+# Booking Confirmation & Customer Communication
+
+BookMyStay also provides customer-facing booking documents and email communication after a successful reservation.
+
+## Booking Voucher
+
+The platform generates a hotel booking voucher containing key reservation and payment information, including:
+
+- Booking ID
+- Hotel
+- Check-in and check-out dates
+- Room type
+- Guest counts
+- Guest details
+- Payment status
+- Booking status
+- Amount paid
+- Booking terms and check-in notes
+
+Example voucher:
+
+[View Booking Voucher (Google Drive)](https://drive.google.com/file/d/1r1a74YiMceHRG_Jvc2UI_tAgA0c9dN8L/view?usp=sharing)
+
+The sample voucher shows a successful booking with the payment status marked as `SUCCESS` and the booking status marked as `BOOKED`. fileciteturn28file0L18-L38
+
+## Booking Confirmation Email
+
+After confirmation, BookMyStay sends a dedicated booking confirmation email containing the reservation summary and pre-arrival guidance.
+
+The email includes:
+
+- Booking confirmation status
+- Guest name
+- Booking ID
+- Hotel
+- Room type
+- Check-in and check-out dates
+- Amount paid
+- Check-in guidance
+
+Example email:
+
+[View Booking Confirmation Email (Google Drive)](https://drive.google.com/file/d/1tWrD3vhPhwEbpRyD_8IzLhPHufTPN9U9/view?usp=sharing)
+
+The sample email uses the BookMyStay branded template and communicates that the reservation has been successfully confirmed. fileciteturn28file1L8-L28
+
+This customer communication is powered by the backend event-driven email service. See [Event-Driven Architecture](docs/EVENT-DRIVEN-ARCHITECTURE.md) for the technical implementation.
+
+# How the Platform Works
+
+At a high level:
 
 ```mermaid
 flowchart TB
+    USER[" Users"]
+    FRONTEND[" React + TypeScript Frontend"]
 
-    CLIENT["React + TypeScript Frontend"]
+    subgraph CORE[" BookMyStay Core — Spring Boot"]
+        SECURITY[" Spring Security + JWT"]
+        SERVICES["️ Application Services"]
+    end
 
-    CLIENT --> CORE["BookMyStay Core<br/>Spring Boot"]
+    DB["️ PostgreSQL / Supabase"]
+    REDIS[" Redis"]
+    ES[" Elasticsearch"]
+    KAFKA{{" Apache Kafka"}}
+    EMAIL[" Email Service"]
+    SMTP["️ SMTP Provider"]
+    RAZORPAY[" Razorpay"]
 
-    CORE --> SECURITY["Spring Security<br/>JWT Authentication"]
-
-    CORE --> SERVICES["Application Services"]
-
-    SERVICES --> DB["PostgreSQL<br/>Supabase"]
-
-    SERVICES --> REDIS["Redis<br/>Caching"]
-
-    SERVICES --> ES["Elasticsearch<br/>Hotel Search"]
-
-    SERVICES --> KAFKA["Apache Kafka"]
-
-    KAFKA --> EMAIL["Email Service<br/>Spring Boot"]
-
-    EMAIL --> SMTP["SMTP / Mail Provider"]
-
-    SERVICES --> RAZORPAY["Razorpay"]
-
-    CORE --> EVENTS["common-events"]
-
-    EVENTS --> KAFKA
+    USER --> FRONTEND
+    FRONTEND --> CORE
+    SECURITY --> SERVICES
+    SERVICES --> DB
+    SERVICES --> REDIS
+    SERVICES --> ES
+    SERVICES --> KAFKA
+    KAFKA --> EMAIL
+    EMAIL --> SMTP
+    SERVICES --> RAZORPAY
 ```
+
+The detailed architecture is intentionally documented separately so this README stays approachable.
+
+See [️ Architecture](docs/ARCHITECTURE.md).
 
 ---
 
-## 🧩 Technology Stack
+# ️ Technology Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| Language | Java 21 | Backend development |
-| Framework | Spring Boot 3 | REST APIs and application services |
+| Backend Language | Java 21 | Backend development |
+| Backend Framework | Spring Boot 3 | REST APIs and application services |
 | Security | Spring Security | Authentication and authorization |
 | Authentication | JWT | Stateless authentication |
 | ORM | Spring Data JPA | Database persistence |
@@ -141,20 +410,16 @@ flowchart TB
 | Messaging | Apache Kafka | Event-driven communication |
 | Email | JavaMailSender | Email notifications |
 | Payments | Razorpay | Online payments |
-| API Documentation | Swagger / OpenAPI | API documentation |
+| API Documentation | Swagger / OpenAPI | API exploration and documentation |
 | Containerization | Docker | Application and infrastructure containers |
 | Frontend | React + TypeScript | User interface |
 | Build Tool | Maven | Java dependency and build management |
 
 ---
 
-## 🔐 Authentication & Authorization
+# Authentication & Authorization
 
-BookMyStay uses **Spring Security with JWT-based authentication**.
-
-The platform supports role-based access control.
-
-### Application Roles
+BookMyStay uses **Spring Security with JWT-based authentication** and supports:
 
 ```text
 USER
@@ -162,11 +427,10 @@ OWNER
 ADMIN
 ```
 
-### Authentication Flow
+High-level flow:
 
 ```mermaid
 sequenceDiagram
-
     participant U as User
     participant F as Frontend
     participant B as BookMyStay Core
@@ -178,172 +442,21 @@ sequenceDiagram
     DB-->>B: User
     B->>B: Generate JWT
     B-->>F: Access Token + User
-    F->>F: Store Authentication State
-
     U->>F: Protected Request
     F->>B: Request + JWT
-    B->>B: Validate JWT
-    B->>B: Check Role
+    B->>B: Validate JWT + Role
     B-->>F: Protected Resource
 ```
 
----
-
-# 🏨 Hotel Booking
-
-The booking system is designed around:
-
-- Hotel
-- Room Type
-- Guest Capacity
-- Inventory Availability
-- Check-in Date
-- Check-out Date
-- Adult Count
-- Child Count
-
-A booking request contains:
-
-```text
-Hotel
-Room Type
-Check-in Date
-Check-out Date
-Adults
-Children
-```
-
-The backend validates room capacity and inventory availability before creating the booking.
+Authentication and authorization are enforced by the backend.
 
 ---
 
-## 🔄 Booking Flow
-
-```mermaid
-sequenceDiagram
-
-    participant U as User
-    participant F as Frontend
-    participant B as Backend
-    participant DB as PostgreSQL
-    participant R as Razorpay
-
-    U->>F: Search Hotel
-    F->>B: Search Request
-    B->>DB: Query Hotel / Inventory
-    DB-->>B: Available Hotels
-    B-->>F: Search Results
-
-    U->>F: Select Hotel + Room Type
-
-    F->>B: Create Booking Request
-    B->>DB: Check Inventory
-    DB-->>B: Availability
-
-    B->>DB: Create Booking
-    B->>DB: Reserve Inventory
-    DB-->>B: Booking Created
-
-    B-->>F: Booking Created
-
-    U->>F: Add Guest Details
-    F->>B: Guest Information
-    B->>DB: Save Guest Information
-
-    U->>F: Start Payment
-    F->>B: Create Payment Order
-
-    B->>R: Create Razorpay Order
-    R-->>B: Razorpay Order
-
-    B-->>F: Payment Order
-
-    F->>R: Open Checkout
-    R-->>F: Payment Result
-
-    F->>B: Verify Payment
-
-    B->>R: Verify Payment
-    R-->>B: Payment Status
-
-    B->>DB: Update Payment
-    B->>DB: Confirm Booking
-
-    B-->>F: Booking Confirmed
-```
-
-Detailed documentation:
-
-**[📖 Booking Flow](docs/BOOKING-FLOW.md)**
-
----
-
-# 💳 Payment Processing
-
-BookMyStay integrates **Razorpay** for online payments.
-
-The backend validates:
-
-- Razorpay payment status
-- Razorpay order ID
-- Payment amount
-- Payment information
-- Payment signature
-
-## Payment Flow
-
-```mermaid
-sequenceDiagram
-
-    participant U as User
-    participant F as Frontend
-    participant B as BookMyStay Core
-    participant R as Razorpay
-    participant DB as PostgreSQL
-
-    U->>F: Start Payment
-
-    F->>B: Create Payment Order
-
-    B->>DB: Validate Booking
-    DB-->>B: Booking State
-
-    B->>R: Create Razorpay Order
-    R-->>B: Razorpay Order
-
-    B-->>F: Return Order
-
-    F->>R: Open Razorpay Checkout
-    R-->>F: Payment Response
-
-    F->>B: Payment ID + Order ID + Signature
-
-    B->>R: Verify Payment
-
-    R-->>B: Payment Details
-
-    B->>B: Validate Signature
-    B->>B: Validate Order
-    B->>B: Validate Amount
-    B->>B: Validate Payment Status
-
-    B->>DB: Update Payment
-    B->>DB: Confirm Booking
-
-    B-->>F: Payment Success
-```
-
-Detailed documentation:
-
-**[💳 Payment Flow](docs/PAYMENT-FLOW.md)**
-
----
-
-# 📦 Inventory Management
+# Inventory Management
 
 BookMyStay maintains daily room inventory.
 
-Inventory tracks information such as:
+Inventory tracks:
 
 ```text
 Room
@@ -358,7 +471,7 @@ Price
 Closed
 ```
 
-### Availability Calculation
+Availability is calculated as:
 
 ```text
 Available Rooms
@@ -370,35 +483,25 @@ Book Count
 Reserved Count
 ```
 
-This allows the system to reserve inventory while a booking is going through the payment process.
-
-## Inventory Lifecycle
+This allows inventory to be held while a booking is going through payment.
 
 ```mermaid
 flowchart TD
-
     A["Room Inventory"] --> B["Available"]
-
     B --> C["Booking Created"]
-
     C --> D["Reserved Count + 1"]
-
     D --> E{"Payment Successful?"}
-
     E -->|Yes| F["Booking Confirmed"]
     F --> G["Book Count + 1"]
     G --> H["Reserved Count - 1"]
-
     E -->|No / Expired| I["Booking Expired"]
-
     I --> J["Release Reserved Inventory"]
-
     J --> K["Reserved Count - 1"]
 ```
 
 ---
 
-# 🔎 Elasticsearch Search
+# Hotel Search
 
 Elasticsearch is used for hotel search functionality.
 
@@ -415,64 +518,46 @@ Active Status
 Thumbnail
 ```
 
-## Search Architecture
-
 ```mermaid
 flowchart LR
-
     USER["User"]
-
     FRONTEND["React Frontend"]
-
     BACKEND["Spring Boot Backend"]
-
     ES["Elasticsearch"]
-
     DB["PostgreSQL"]
 
     USER --> FRONTEND
     FRONTEND --> BACKEND
-
     BACKEND --> ES
     ES --> BACKEND
-
     BACKEND --> DB
     BACKEND --> FRONTEND
 ```
 
 ---
 
-# ⚡ Redis
+# Redis Caching
 
-Redis is used as a caching layer to reduce unnecessary repeated database operations and improve application performance.
+Redis is used as a caching layer to reduce repeated database operations and improve application performance.
 
 ```mermaid
 flowchart LR
-
     CLIENT["Frontend"]
-
     API["Spring Boot API"]
-
     CACHE["Redis"]
-
     DB["PostgreSQL"]
 
     CLIENT --> API
-
     API --> CACHE
-
     CACHE -->|Cache Hit| API
-
     CACHE -->|Cache Miss| DB
-
     DB --> API
-
     API --> CLIENT
 ```
 
 ---
 
-# 📨 Event-Driven Architecture
+# Event-Driven Architecture
 
 BookMyStay uses **Apache Kafka** for asynchronous event processing.
 
@@ -480,15 +565,10 @@ The core backend publishes application events that can be consumed by independen
 
 ```mermaid
 flowchart LR
-
     CORE["BookMyStay Core"]
-
     EVENTS["Application Events"]
-
     KAFKA{{"Apache Kafka"}}
-
     EMAIL["Email Service"]
-
     SMTP["SMTP / Email Provider"]
 
     CORE --> EVENTS
@@ -497,68 +577,52 @@ flowchart LR
     EMAIL --> SMTP
 ```
 
-## Shared Events
-
 The `common-events` module contains shared event definitions used by the backend and email service.
 
 ```mermaid
 flowchart LR
-
     COMMON["common-events"]
-
     CORE["BookMyStay Core"]
-
     EMAIL["Email Service"]
 
     COMMON --> CORE
     COMMON --> EMAIL
 ```
 
-Detailed documentation:
-
-**[📨 Event-Driven Architecture](docs/EVENT-DRIVEN-ARCHITECTURE.md)**
+Detailed documentation: [ Event-Driven Architecture](docs/EVENT-DRIVEN-ARCHITECTURE.md).
 
 ---
 
-# 📧 Email Service
+# Email Service
 
 BookMyStay contains a separate email service responsible for processing notification events and sending emails.
 
 ```text
 BookMyStay Core
-       │
-       ▼
+      │
+      ▼
     Kafka
-       │
-       ▼
+      │
+      ▼
  Email Service
-       │
-       ▼
+      │
+      ▼
  JavaMailSender
-       │
-       ▼
+      │
+      ▼
  SMTP Provider
-       │
-       ▼
-    User Email
+      │
+      ▼
+  User Email
 ```
 
-### Responsibilities
-
-- Consume Kafka events
-- Process notification events
-- Build email messages
-- Send emails using JavaMailSender
-
-The email service is independently structured and can be deployed separately from the core backend.
+The email service consumes Kafka events, builds notification messages, and sends them independently from the core backend.
 
 ---
 
-# 🗄️ Database
+# ️ Database
 
-The application uses **PostgreSQL** as its primary relational database.
-
-The project uses **Supabase PostgreSQL** for hosted database infrastructure.
+The application uses **PostgreSQL** as its primary relational database and **Supabase PostgreSQL** for hosted database infrastructure.
 
 Major domain areas include:
 
@@ -573,15 +637,13 @@ Guests
 Reviews
 ```
 
-Detailed database documentation:
-
-**[🗄️ Database Documentation](docs/DATABASE.md)**
+Detailed database documentation: [️ Database Documentation](docs/DATABASE.md).
 
 ---
 
-# 🐳 Docker
+# Docker
 
-The backend repository contains Docker configuration for application infrastructure.
+The backend repository contains Docker configuration for the application and infrastructure.
 
 ```text
 Dockerfile
@@ -589,24 +651,24 @@ docker-compose.yml
 email-service/Dockerfile
 ```
 
-The Docker Compose configuration is used for infrastructure such as:
+Docker Compose is used for infrastructure such as:
 
 - Apache Kafka
 - Elasticsearch
 
-## Start Infrastructure
+Start infrastructure:
 
 ```bash
 docker compose up -d
 ```
 
-## Check Running Containers
+Check containers:
 
 ```bash
 docker ps
 ```
 
-## Stop Infrastructure
+Stop infrastructure:
 
 ```bash
 docker compose down
@@ -614,7 +676,7 @@ docker compose down
 
 ---
 
-# 🚀 Local Development
+# Run Locally
 
 ## 1. Clone the Repository
 
@@ -653,7 +715,7 @@ mvn spring-boot:run
 
 ---
 
-# ⚙️ Environment Configuration
+# ️ Environment Configuration
 
 The application requires environment-specific configuration for external services.
 
@@ -671,17 +733,17 @@ SMTP
 
 Create the required environment variables according to your local or deployment configuration.
 
-> ⚠️ Never commit production secrets, passwords, API keys, JWT secrets, Razorpay credentials or SMTP credentials to GitHub.
+> ️ Never commit production secrets, passwords, API keys, JWT secrets, Razorpay credentials, or SMTP credentials to GitHub.
 
 ---
 
-# 📚 API Documentation
+# API Documentation
 
 The backend exposes REST APIs through Spring Boot.
 
 Swagger/OpenAPI is used for API exploration and documentation.
 
-When the backend is running locally, Swagger UI is available through the configured Swagger endpoint:
+When the backend is running locally, Swagger UI is available through:
 
 ```text
 /swagger-ui/index.html
@@ -689,60 +751,9 @@ When the backend is running locally, Swagger UI is available through the configu
 
 ---
 
-# 👥 Application Roles
+# Booking & Payment States
 
-## 👤 Guest
-
-Guests can:
-
-```text
-Register
-Login
-Search Hotels
-View Hotels
-Select Rooms
-Create Bookings
-Add Guests
-Make Payments
-View Bookings
-Cancel Bookings
-Write Reviews
-```
-
-## 🏨 Hotel Owner
-
-Owners can:
-
-```text
-Apply as Owner
-Create Hotels
-Manage Hotels
-Manage Rooms
-Manage Inventory
-Manage Bookings
-View Revenue
-Manage Reviews
-Manage Verification
-```
-
-## 🛡️ Administrator
-
-Administrators can:
-
-```text
-View Dashboard
-Manage Users
-Manage Hotels
-Review Owner Applications
-Verify Hotels
-Manage Platform Data
-```
-
----
-
-# 🔄 Booking States
-
-The booking lifecycle includes states such as:
+## Booking
 
 ```text
 payment_pending
@@ -756,11 +767,7 @@ payment_pending
            Cancelled
 ```
 
----
-
-# 💳 Payment States
-
-Payment processing supports states such as:
+## Payment
 
 ```text
 pending
@@ -770,13 +777,13 @@ expired
 refund
 ```
 
-Payment status and booking status are maintained separately so that payment processing remains independent from the booking lifecycle.
+Payment and booking status are maintained separately so payment processing can remain independent from the booking lifecycle.
 
 ---
 
-# 🔒 Security
+# Security
 
-The application uses several security mechanisms:
+The application uses:
 
 - Spring Security
 - JWT authentication
@@ -790,38 +797,79 @@ Sensitive values should always be stored using environment variables or secure s
 
 ---
 
-# 📈 Scalability
+# Scalability
 
 The architecture separates major infrastructure responsibilities:
 
 ```text
-                    ┌────────────────────┐
-                    │   React Frontend   │
-                    └─────────┬──────────┘
-                              │
-                              ▼
-                    ┌────────────────────┐
-                    │   Spring Boot API  │
-                    └─────────┬──────────┘
-                              │
-             ┌────────────────┼─────────────────┐
-             │                │                 │
-             ▼                ▼                 ▼
-       PostgreSQL           Redis         Elasticsearch
-             │
-             │
-             ▼
-           Kafka
-             │
-             ▼
+                 ┌────────────────────┐
+                 │   React Frontend   │
+                 └─────────┬──────────┘
+                           │
+                           ▼
+                 ┌────────────────────┐
+                 │   Spring Boot API  │
+                 └─────────┬──────────┘
+                           │
+            ┌──────────────┼─────────────────┐
+            │              │                 │
+            ▼              ▼                 ▼
+       PostgreSQL        Redis         Elasticsearch
+            │
+            ▼
+          Kafka
+            │
+            ▼
        Email Service
 ```
 
-This architecture allows individual infrastructure components and asynchronous services to evolve independently.
+This separation allows infrastructure components and asynchronous services to evolve independently.
 
 ---
 
-# 🛣️ Future Improvements
+# Project Documentation
+
+| Document | Description |
+|---|---|
+| [️ Architecture](docs/ARCHITECTURE.md) | Backend architecture and system structure |
+| [️ Database](docs/DATABASE.md) | Database structure and relationships |
+| [ Booking Flow](docs/BOOKING-FLOW.md) | Complete booking lifecycle |
+| [ Payment Flow](docs/PAYMENT-FLOW.md) | Razorpay payment lifecycle |
+| [ Event-Driven Architecture](docs/EVENT-DRIVEN-ARCHITECTURE.md) | Kafka and email service |
+| [ Deployment](docs/DEPLOYMENT.md) | Deployment architecture and setup |
+| [ Demo](docs/DEMO.md) | Demo accounts and testing |
+| [ Pages](docs/PAGES.md) | Application pages and screenshots |
+
+---
+
+# ️ Frontend
+
+The BookMyStay frontend is maintained in a separate repository.
+
+### Frontend Repository
+
+https://github.com/gittarsem/BookMyStay-Frontend
+
+### Live Frontend
+
+https://bookmystay-frontend-one.vercel.app
+
+### Frontend Stack
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Query
+- React Hook Form
+- Zod
+- Axios
+- Lucide Icons
+- Razorpay JavaScript SDK
+
+---
+
+# ️ Future Improvements
 
 Potential future improvements include:
 
@@ -845,136 +893,7 @@ Potential future improvements include:
 
 ---
 
-# 📸 Application Preview
-
-> Add your actual screenshots to `docs/screenshots/` and update the filenames below.
-
-## 🏠 Home Page
-
-![Home Page](docs/screenshots/home.png)
-
-## 🔎 Hotel Search
-
-![Hotel Search](docs/screenshots/search.png)
-
-## 🏨 Hotel Details
-
-![Hotel Details](docs/screenshots/hotel-details.png)
-
-## 📅 Booking
-
-![Booking Page](docs/screenshots/booking.png)
-
-## 💳 Payment
-
-![Payment Page](docs/screenshots/payment.png)
-
-## 👤 My Bookings
-
-![My Bookings](docs/screenshots/my-bookings.png)
-
-## 🏨 Owner Dashboard
-
-![Owner Dashboard](docs/screenshots/owner-dashboard.png)
-
-## 🛡️ Admin Dashboard
-
-![Admin Dashboard](docs/screenshots/admin-dashboard.png)
-
-Complete page documentation:
-
-**[📸 Pages & Screenshots](docs/PAGES.md)**
-
----
-
-# 🗂️ Repository Structure
-
-```text
-BookMyStay/
-│
-├── bookmystay-core/
-│   ├── src/
-│   └── pom.xml
-│
-├── common-events/
-│   ├── src/
-│   └── pom.xml
-│
-├── email-service/
-│   ├── src/
-│   ├── Dockerfile
-│   └── pom.xml
-│
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── DATABASE.md
-│   ├── BOOKING-FLOW.md
-│   ├── PAYMENT-FLOW.md
-│   ├── EVENT-DRIVEN-ARCHITECTURE.md
-│   ├── DEPLOYMENT.md
-│   ├── DEMO.md
-│   ├── PAGES.md
-│   └── screenshots/
-│
-├── Dockerfile
-├── docker-compose.yml
-├── pom.xml
-└── README.md
-```
-
----
-
-# 📖 Project Documentation
-
-| Document | Description |
-|---|---|
-| [🏗️ Architecture](docs/ARCHITECTURE.md) | Complete backend architecture |
-| [🗄️ Database](docs/DATABASE.md) | Database structure and relationships |
-| [🔄 Booking Flow](docs/BOOKING-FLOW.md) | Complete booking lifecycle |
-| [💳 Payment Flow](docs/PAYMENT-FLOW.md) | Razorpay payment lifecycle |
-| [📨 Event-Driven Architecture](docs/EVENT-DRIVEN-ARCHITECTURE.md) | Kafka and email service |
-| [🚀 Deployment](docs/DEPLOYMENT.md) | Deployment architecture and setup |
-| [🔑 Demo](docs/DEMO.md) | Demo accounts and testing |
-| [📸 Pages](docs/PAGES.md) | Application pages and screenshots |
-
----
-
-# 🖥️ Frontend
-
-The BookMyStay frontend is maintained in a separate repository.
-
-### Frontend Repository
-
-https://github.com/gittarsem/BookMyStay-Frontend
-
-### Frontend Stack
-
-- React 19
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Query
-- React Hook Form
-- Zod
-- Axios
-- Lucide Icons
-- Razorpay JavaScript SDK
-
----
-
-# 🌐 Repositories
-
-### Backend
-
-https://github.com/gittarsem/BookMyStay
-
-### Frontend
-
-https://github.com/gittarsem/BookMyStay-Frontend
-
----
-
-# 👨‍💻 Author
+# ‍ Author
 
 **Tarsem Gulab**
 
@@ -986,9 +905,7 @@ B.Tech — Computer Science & Engineering
 
 # ⭐ Support
 
-If you find this project useful or interesting, consider giving the repository a ⭐ on GitHub.
-
----
+If you find the project useful or interesting, consider giving the repository a ⭐ on GitHub.
 
 <p align="center">
   <b>BookMyStay — Discover. Book. Stay.</b>
