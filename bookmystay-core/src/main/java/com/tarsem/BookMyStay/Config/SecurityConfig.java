@@ -1,10 +1,10 @@
 package com.tarsem.BookMyStay.Config;
 
-
 import com.tarsem.BookMyStay.Security.CustomAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -31,23 +31,26 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(new BCryptPasswordEncoder(12));
+        DaoAuthenticationProvider provider =
+                new DaoAuthenticationProvider(userDetailsService);
+
+        provider.setPasswordEncoder(
+                new BCryptPasswordEncoder(12)
+        );
+
         return provider;
     }
 
-
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         http
                 .cors(cors -> {})
                 .csrf(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(request -> request
-
-                        // =====================================================
-                        // PUBLIC / AUTH
-                        // =====================================================
 
                         .requestMatchers(
                                 "/auth/**",
@@ -59,49 +62,26 @@ public class SecurityConfig {
                                 "/health"
                         ).permitAll()
 
-
-                        // =====================================================
-                        // OWNER APPLICATION
-                        // =====================================================
-                        // A logged-in normal user can apply to become OWNER.
-                        // This MUST come before /owner/**.
-                        // =====================================================
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/hotels/*/reviews"
+                        ).permitAll()
 
                         .requestMatchers(
                                 "/apply/**"
                         ).authenticated()
 
-
-                        // =====================================================
-                        // ADMIN
-                        // =====================================================
-
                         .requestMatchers(
                                 "/admin/**"
                         ).hasRole("ADMIN")
-
-
-                        // =====================================================
-                        // GUEST
-                        // =====================================================
 
                         .requestMatchers(
                                 "/guest/**"
                         ).hasRole("GUEST")
 
-
-                        // =====================================================
-                        // OWNER
-                        // =====================================================
-
                         .requestMatchers(
                                 "/owner/**"
                         ).hasRole("OWNER")
-
-
-                        // =====================================================
-                        // EVERYTHING ELSE
-                        // =====================================================
 
                         .anyRequest().authenticated()
                 )
