@@ -17,7 +17,7 @@ Role: USER
 ## 🏨 Owner Account
 
 ```text
-Email: owner@bookmystay.com
+Email: owner.tg@bookmystay.com
 Password: @tarsem006
 Role: OWNER
 ```
