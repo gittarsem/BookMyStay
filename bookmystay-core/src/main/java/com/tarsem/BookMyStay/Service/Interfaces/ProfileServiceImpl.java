@@ -2,6 +2,7 @@ package com.tarsem.BookMyStay.Service;
 
 import com.tarsem.BookMyStay.Entity.UserEntity;
 import com.tarsem.BookMyStay.Repositroy.UserRepository;
+import com.tarsem.BookMyStay.Service.Interfaces.ProfileService;
 import com.tarsem.BookMyStay.dto.profile.ChangePasswordRequestDTO;
 import com.tarsem.BookMyStay.dto.profile.DeleteAccountRequestDTO;
 import com.tarsem.BookMyStay.dto.profile.ProfileDTO;

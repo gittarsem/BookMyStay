@@ -34,48 +34,73 @@ import static com.tarsem.BookMyStay.Utils.AppUtils.*;
 @AllArgsConstructor
 public class HotelServiceImpl implements HotelService {
 
-     private final HotelRepository hotelRepository;
-     private final RoomTypePricingRepository roomTypePricingRepository;
-     private final InventoryService inventoryService;
-     private final ModelMapper modelMapper;
-     private final HotelElasticRepository elasticRepository;
-     private final AuthorizationService authorizationService;
-     private final CloudinaryService cloudinaryService;
-
+    private final HotelRepository hotelRepository;
+    private final RoomTypePricingRepository roomTypePricingRepository;
+    private final InventoryService inventoryService;
+    private final ModelMapper modelMapper;
+    private final HotelElasticRepository elasticRepository;
+    private final AuthorizationService authorizationService;
+    private final CloudinaryService cloudinaryService;
+    private final ElasticsearchAvailabilityService elasticsearchAvailabilityService;
 
     @Override
     @Caching(evict = {
             @CacheEvict(value = "hotel_search", allEntries = true),
             @CacheEvict(value = "user_hotels", allEntries = true)
     })
-    public HotelResponseDTO createHotel(HotelRequestDTO hotelRequestDTO, List<MultipartFile> img) throws IOException {
+    public HotelResponseDTO createHotel(
+            HotelRequestDTO hotelRequestDTO,
+            List<MultipartFile> img
+    ) throws IOException {
+
         List<String> imageUrls = new ArrayList<>();
 
         if (img != null && !img.isEmpty()) {
             imageUrls = cloudinaryService.uploadImages(img);
         }
+
         System.out.println(hotelRequestDTO);
-        HotelEntity hotel=modelMapper.map(hotelRequestDTO,HotelEntity.class);
-        UserEntity user=giveMeCurrentUser();
+
+        HotelEntity hotel = modelMapper.map(
+                hotelRequestDTO,
+                HotelEntity.class
+        );
+
+        UserEntity user = giveMeCurrentUser();
+
         hotel.setOwner(user);
         hotel.setCity(hotelRequestDTO.getCity());
         hotel.setActive(false);
         hotel.setImages(imageUrls);
-        hotel=hotelRepository.save(hotel);
-        elasticRepository.save(mapToDocument(hotel));
-        HotelResponseDTO newHotel=modelMapper.map(hotel,HotelResponseDTO.class);
+
+        hotel = hotelRepository.save(hotel);
+
+        syncHotelToElasticsearch(hotel);
+
+        HotelResponseDTO newHotel =
+                modelMapper.map(hotel, HotelResponseDTO.class);
+
         log.info("Saved hotel with id {}", newHotel.getId());
+
         return newHotel;
     }
 
     @Override
     @Cacheable(value = "hotels", key = "#hotelId")
-    public HotelResponseDTO getHotel(Long hotelId) throws UnAuthorisedException {
-        log.info("Getting the hotel with ID: {}",hotelId);
-        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
-        HotelResponseDTO response=modelMapper.map(hotel,HotelResponseDTO.class);
+    public HotelResponseDTO getHotel(Long hotelId)
+            throws UnAuthorisedException {
+
+        log.info("Getting the hotel with ID: {}", hotelId);
+
+        HotelEntity hotel =
+                authorizationService.getOwnedHotel(hotelId);
+
+        HotelResponseDTO response =
+                modelMapper.map(hotel, HotelResponseDTO.class);
+
         response.setImageUrl(
-                hotel.getImages() != null && !hotel.getImages().isEmpty()
+                hotel.getImages() != null &&
+                        !hotel.getImages().isEmpty()
                         ? hotel.getImages().getFirst()
                         : null
         );
@@ -85,26 +110,38 @@ public class HotelServiceImpl implements HotelService {
                         ? hotel.getRooms().size()
                         : 0
         );
+
         return response;
     }
-
-
 
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "hotels", key = "#id"),
+            @CacheEvict(value = "hotels",key = "#hotelId"),
             @CacheEvict(value = "hotel_search", allEntries = true)
     })
-    public HotelResponseDTO updateHotelById(HotelRequestDTO hotelRequestDTO, Long hotelId) {
-        log.info("Updating the hotel with ID: {}", hotelId);
-        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
-        modelMapper.map(hotelRequestDTO,hotel);
-        hotel.setId(hotelId);
-        hotelRepository.save(hotel);
-        elasticRepository.save(mapToDocument(hotel));
-        return modelMapper.map(hotel,HotelResponseDTO.class);
+    public HotelResponseDTO updateHotelById(
+            HotelRequestDTO hotelRequestDTO,
+            Long hotelId
+    ) {
 
+        log.info("Updating the hotel with ID: {}", hotelId);
+
+        HotelEntity hotel =
+                authorizationService.getOwnedHotel(hotelId);
+
+        modelMapper.map(hotelRequestDTO, hotel);
+
+        hotel.setId(hotelId);
+
+        hotelRepository.save(hotel);
+
+        syncHotelToElasticsearch(hotel);
+
+        return modelMapper.map(
+                hotel,
+                HotelResponseDTO.class
+        );
     }
 
     @Override
@@ -115,10 +152,16 @@ public class HotelServiceImpl implements HotelService {
             @CacheEvict(value = "user_hotels", allEntries = true)
     })
     public @Nullable String deleteHotelById(Long hotelId) {
+
         log.info("Deleting the hotel with ID: {}", hotelId);
-        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
+
+        HotelEntity hotel =
+                authorizationService.getOwnedHotel(hotelId);
+
         hotelRepository.deleteById(hotelId);
-        elasticRepository.deleteById(hotelId.toString());
+
+        deleteHotelFromElasticsearch(hotelId);
+
         return "Deleted Successfully";
     }
 
@@ -128,13 +171,24 @@ public class HotelServiceImpl implements HotelService {
             key = "T(com.tarsem.BookMyStay.Utils.AppUtils).giveMeCurrentUser().id"
     )
     public List<HotelResponseDTO> getAllHotel() {
-        UserEntity user=giveMeCurrentUser();
-        List<HotelEntity> hotels= hotelRepository.findByOwner(user);
-        log.info("Getting all hotels for the admin user with ID: {}", user.getId());
+
+        UserEntity user = giveMeCurrentUser();
+
+        List<HotelEntity> hotels =
+                hotelRepository.findByOwner(user);
+
+        log.info(
+                "Getting all hotels for the admin user with ID: {}",
+                user.getId()
+        );
+
         return hotels
                 .stream()
                 .map(
-                        (it)->modelMapper.map(it,HotelResponseDTO.class)
+                        it -> modelMapper.map(
+                                it,
+                                HotelResponseDTO.class
+                        )
                 )
                 .toList();
     }
@@ -142,20 +196,33 @@ public class HotelServiceImpl implements HotelService {
     @Override
     @Transactional
     @Caching(evict = {
-            @CacheEvict(value = "hotel_search",key="#hotelId"),
+            @CacheEvict(value = "hotel_search", key = "#hotelId"),
             @CacheEvict(value = "user_hotels", allEntries = true)
     })
     public String activateHotelById(Long hotelId) {
-        log.info("Activating hotel with ID: {}", hotelId);
-        HotelEntity hotel= authorizationService.getOwnedHotel(hotelId);
-        for(RoomEntity room: hotel.getRooms()){
+
+        log.info(
+                "Activating hotel with ID: {}",
+                hotelId
+        );
+
+        HotelEntity hotel =
+                authorizationService.getOwnedHotel(hotelId);
+
+        for (RoomEntity room : hotel.getRooms()) {
             inventoryService.initializeRoom(room);
         }
-        if(hotel.getActive()) return "Hotel is already active";
+
+        if (hotel.getActive()) {
+            return "Hotel is already active";
+        }
+
         hotel.setActive(true);
-        //hotel.setMinPrice(getMinPriceRoom(hotel));
+
         hotelRepository.save(hotel);
-        elasticRepository.save(mapToDocument(hotel));
+
+        syncHotelToElasticsearch(hotel);
+
         return "Hotel is now Active";
     }
 
@@ -164,32 +231,45 @@ public class HotelServiceImpl implements HotelService {
     @Cacheable(value = "hotel_info", key = "#hotelId")
     public HotelInfoDTO findHotelById(Long hotelId) {
 
-        HotelEntity hotel = hotelRepository.findById(hotelId)
-                .orElseThrow(
-                        () -> new HotelNotFoundException(
-                                "Hotel with this id does not exist"
-                        )
-                );
+        HotelEntity hotel =
+                hotelRepository.findById(hotelId)
+                        .orElseThrow(
+                                () -> new HotelNotFoundException(
+                                        "Hotel with this id does not exist"
+                                )
+                        );
 
         List<RoomEntity> rooms =
                 hotel.getRooms() != null
                         ? hotel.getRooms()
                         : new ArrayList<>();
 
-        List<RoomDTO> roomsList = rooms.stream()
-                .map(room -> modelMapper.map(room, RoomDTO.class))
-                .toList();
+        List<RoomDTO> roomsList =
+                rooms.stream()
+                        .map(
+                                room ->
+                                        modelMapper.map(
+                                                room,
+                                                RoomDTO.class
+                                        )
+                        )
+                        .toList();
 
-        List<String> images = hotel.getImages() != null
-                ? new ArrayList<>(hotel.getImages())
-                : new ArrayList<>();
+        List<String> images =
+                hotel.getImages() != null
+                        ? new ArrayList<>(hotel.getImages())
+                        : new ArrayList<>();
 
-        List<HotelAmenity> amenities = hotel.getAmenities() != null
-                ? new ArrayList<>(hotel.getAmenities())
-                : new ArrayList<>();
+        List<HotelAmenity> amenities =
+                hotel.getAmenities() != null
+                        ? new ArrayList<>(hotel.getAmenities())
+                        : new ArrayList<>();
 
         HotelResponseDTO hotelResponse =
-                modelMapper.map(hotel, HotelResponseDTO.class);
+                modelMapper.map(
+                        hotel,
+                        HotelResponseDTO.class
+                );
 
         hotelResponse.setImageUrl(
                 !images.isEmpty()
@@ -210,9 +290,10 @@ public class HotelServiceImpl implements HotelService {
 
                             List<RoomEntity> roomsOfType =
                                     rooms.stream()
-                                            .filter(room ->
-                                                    room.getRoomType()
-                                                            == pricing.getRoomType()
+                                            .filter(
+                                                    room ->
+                                                            room.getRoomType()
+                                                                    == pricing.getRoomType()
                                             )
                                             .toList();
 
@@ -237,8 +318,6 @@ public class HotelServiceImpl implements HotelService {
                         })
                         .toList();
 
-
-
         return HotelInfoDTO.builder()
                 .hotels(hotelResponse)
                 .rooms(roomsList)
@@ -256,9 +335,12 @@ public class HotelServiceImpl implements HotelService {
     public List<HotelResponseDTO> getMyHotels() {
 
         List<HotelEntity> hotels =
-                hotelRepository.findAllByOwner(giveMeCurrentUser());
+                hotelRepository.findAllByOwner(
+                        giveMeCurrentUser()
+                );
 
-        return hotels.stream()
+        return hotels
+                .stream()
                 .map(hotel -> {
 
                     HotelResponseDTO response =
@@ -287,33 +369,153 @@ public class HotelServiceImpl implements HotelService {
 
     @Override
     @Transactional
-    public List<HotelPricingDTO> putHotelPricing(Long hotelId, RoomType roomType, HotelPricingDTO hotelPricingDTO) {
+    public List<HotelPricingDTO> putHotelPricing(
+            Long hotelId,
+            RoomType roomType,
+            HotelPricingDTO hotelPricingDTO
+    ) {
 
-        HotelEntity hotel=hotelRepository.findById(hotelId).orElseThrow(
-                ()->new HotelNotFoundException("Hotel not found with id:"+hotelId)
+        HotelEntity hotel =
+                hotelRepository.findById(hotelId)
+                        .orElseThrow(
+                                () ->
+                                        new HotelNotFoundException(
+                                                "Hotel not found with id:" + hotelId
+                                        )
+                        );
+
+        RoomTypePricingEntity roomTypePricingEntity =
+                roomTypePricingRepository
+                        .findByHotelIdAndRoomType(
+                                hotelId,
+                                roomType
+                        )
+                        .orElseGet(
+                                () -> {
+                                    RoomTypePricingEntity entity =
+                                            new RoomTypePricingEntity();
+
+                                    entity.setHotel(hotel);
+                                    entity.setRoomType(roomType);
+
+                                    return entity;
+                                }
+                        );
+
+        roomTypePricingEntity.setHourlyPrice(
+                hotelPricingDTO.getHourlyPrice()
         );
 
-        RoomTypePricingEntity roomTypePricingEntity=roomTypePricingRepository.
-                findByHotelIdAndRoomType(hotelId,roomType)
-                .orElseGet(
-                        ()->{
-                            RoomTypePricingEntity entity=new RoomTypePricingEntity();
-                            entity.setHotel(hotel);
-                            entity.setRoomType(roomType);
-                            return entity;
-                        }
-                );
+        roomTypePricingEntity.setDailyPrice(
+                hotelPricingDTO.getDailyPrice()
+        );
 
+        roomTypePricingRepository.save(
+                roomTypePricingEntity
+        );
 
-        roomTypePricingEntity.setHourlyPrice(hotelPricingDTO.getHourlyPrice());
-        roomTypePricingEntity.setDailyPrice(hotelPricingDTO.getDailyPrice());
+        List<HotelPricingDTO> list =
+                hotel.getRoomTypePricingEntities()
+                        .stream()
+                        .map(
+                                roomTypePricingEntity1 ->
+                                        modelMapper.map(
+                                                roomTypePricingEntity1,
+                                                HotelPricingDTO.class
+                                        )
+                        )
+                        .toList();
 
-        roomTypePricingRepository.save(roomTypePricingEntity);
-        List<HotelPricingDTO> list=hotel.getRoomTypePricingEntities().stream().map(
-                roomTypePricingEntity1 ->
-                    modelMapper.map(roomTypePricingEntity1,HotelPricingDTO.class)
-
-        ).toList();
         return list;
+    }
+
+    private void syncHotelToElasticsearch(
+            HotelEntity hotel
+    ) {
+
+        Boolean status =
+                elasticsearchAvailabilityService.getStatus();
+
+        if (Boolean.FALSE.equals(status)) {
+            log.warn(
+                    "Skipping Elasticsearch sync for hotel {} because Elasticsearch is currently unavailable",
+                    hotel.getId()
+            );
+            return;
+        }
+
+        try {
+
+            log.debug(
+                    "Syncing hotel {} to Elasticsearch",
+                    hotel.getId()
+            );
+
+            elasticRepository.save(
+                    mapToDocument(hotel)
+            );
+
+            elasticsearchAvailabilityService.markAvailable();
+
+            log.debug(
+                    "Hotel {} successfully synchronized with Elasticsearch",
+                    hotel.getId()
+            );
+
+        } catch (Exception e) {
+
+            elasticsearchAvailabilityService.markUnavailable();
+
+            log.error(
+                    "Failed to synchronize hotel {} with Elasticsearch. Main database operation will continue.",
+                    hotel.getId(),
+                    e
+            );
+        }
+    }
+
+    private void deleteHotelFromElasticsearch(
+            Long hotelId
+    ) {
+
+        Boolean status =
+                elasticsearchAvailabilityService.getStatus();
+
+        if (Boolean.FALSE.equals(status)) {
+            log.warn(
+                    "Skipping Elasticsearch delete for hotel {} because Elasticsearch is currently unavailable",
+                    hotelId
+            );
+            return;
+        }
+
+        try {
+
+            log.debug(
+                    "Deleting hotel {} from Elasticsearch",
+                    hotelId
+            );
+
+            elasticRepository.deleteById(
+                    hotelId.toString()
+            );
+
+            elasticsearchAvailabilityService.markAvailable();
+
+            log.debug(
+                    "Hotel {} successfully deleted from Elasticsearch",
+                    hotelId
+            );
+
+        } catch (Exception e) {
+
+            elasticsearchAvailabilityService.markUnavailable();
+
+            log.error(
+                    "Failed to delete hotel {} from Elasticsearch. Main database operation will continue.",
+                    hotelId,
+                    e
+            );
+        }
     }
 }

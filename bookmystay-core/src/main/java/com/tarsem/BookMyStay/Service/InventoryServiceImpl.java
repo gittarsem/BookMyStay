@@ -312,6 +312,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     @Cacheable(
             value = "hotel_search",
             key = "#keyword + '-' + #city + '-' + #minPrice + '-' + #maxPrice + '-' + #ratings + '-' + #checkInDate + '-' + #checkInTime + '-' + #checkOutDate + '-' + #checkOutTime + '-' + #sortField + '-' + #sortOrder + '-' + #page + '-' + #size"
@@ -345,6 +346,23 @@ public class InventoryServiceImpl implements InventoryService {
         String normalizedSortOrder =
                 normalizeSortOrder(sortOrder);
 
+        String normalizedKeyword =
+                normalizeNullable(keyword);
+
+        String normalizedCity =
+                normalizeNullable(city);
+
+        if (normalizedKeyword == null) {
+            normalizedKeyword = normalizedCity;
+            normalizedCity = null;
+        }
+
+        LocalTime effectiveCheckInTime =
+                resolveCheckInTime(checkInTime);
+
+        LocalTime effectiveCheckOutTime =
+                resolveCheckOutTime(checkOutTime);
+
         Boolean elasticsearchAvailable =
                 elasticsearchAvailabilityService.getStatus();
 
@@ -354,15 +372,15 @@ public class InventoryServiceImpl implements InventoryService {
 
                 HotelSearchResponseDTO result =
                         searchUsingElasticsearch(
-                                keyword,
-                                city,
+                                normalizedKeyword,
+                                normalizedCity,
                                 minPrice,
                                 maxPrice,
                                 ratings,
                                 checkInDate,
-                                checkInTime,
+                                effectiveCheckInTime,
                                 checkOutDate,
-                                checkOutTime,
+                                effectiveCheckOutTime,
                                 normalizedSortField,
                                 normalizedSortOrder,
                                 page,
@@ -385,15 +403,15 @@ public class InventoryServiceImpl implements InventoryService {
         }
 
         return searchUsingPostgres(
-                keyword,
-                city,
+                normalizedKeyword,
+                normalizedCity,
                 minPrice,
                 maxPrice,
                 ratings,
                 checkInDate,
-                checkInTime,
+                effectiveCheckInTime,
                 checkOutDate,
-                checkOutTime,
+                effectiveCheckOutTime,
                 normalizedSortField,
                 normalizedSortOrder,
                 page,
@@ -422,16 +440,40 @@ public class InventoryServiceImpl implements InventoryService {
 
         if (keyword != null && !keyword.isBlank()) {
 
-            String normalizedKeyword = keyword.trim().toLowerCase();
+            String[] tokens =
+                    keyword.trim()
+                            .toLowerCase()
+                            .split("\\s+");
 
-            builder.filter(
-                    b -> b.wildcard(
-                            w -> w
-                                    .field("name")
-                                    .value("*" + normalizedKeyword + "*")
-                                    .caseInsensitive(true)
-                    )
-            );
+            for (String token : tokens) {
+
+                if (token.isBlank()) {
+                    continue;
+                }
+
+                builder.must(
+                        b -> b.bool(
+                                q -> q
+                                        .should(
+                                                s -> s.wildcard(
+                                                        w -> w
+                                                                .field("name")
+                                                                .value("*" + token + "*")
+                                                                .caseInsensitive(true)
+                                                )
+                                        )
+                                        .should(
+                                                s -> s.wildcard(
+                                                        w -> w
+                                                                .field("city")
+                                                                .value("*" + token + "*")
+                                                                .caseInsensitive(true)
+                                                )
+                                        )
+                                        .minimumShouldMatch("1")
+                        )
+                );
+            }
         }
 
         builder.filter(
@@ -444,11 +486,15 @@ public class InventoryServiceImpl implements InventoryService {
 
         if (city != null && !city.isBlank()) {
 
+            String normalizedCity =
+                    city.trim().toLowerCase();
+
             builder.filter(
-                    b -> b.term(
-                            m -> m
+                    b -> b.wildcard(
+                            w -> w
                                     .field("city")
-                                    .value(city.toLowerCase())
+                                    .value("*" + normalizedCity + "*")
+                                    .caseInsensitive(true)
                     )
             );
         }
@@ -607,20 +653,26 @@ public class InventoryServiceImpl implements InventoryService {
             LocalTime checkOutTime
     ) {
 
-        if (checkInDate == null) {
+        if (checkInDate == null || checkOutDate == null) {
             return hotels;
         }
+
+        LocalTime effectiveCheckInTime =
+                resolveCheckInTime(checkInTime);
+
+        LocalTime effectiveCheckOutTime =
+                resolveCheckOutTime(checkOutTime);
 
         LocalDateTime checkIn =
                 LocalDateTime.of(
                         checkInDate,
-                        checkInTime
+                        effectiveCheckInTime
                 );
 
         LocalDateTime checkOut =
                 LocalDateTime.of(
                         checkOutDate,
-                        checkOutTime
+                        effectiveCheckOutTime
                 );
 
         Collection<String> activeStatuses =
@@ -631,6 +683,8 @@ public class InventoryServiceImpl implements InventoryService {
 
         List<Long> availableHotelIds =
                 roomRepo.findAvailableHotelIds(
+                        checkInDate,
+                        checkOutDate,
                         checkIn,
                         checkOut,
                         activeStatuses
@@ -651,6 +705,28 @@ public class InventoryServiceImpl implements InventoryService {
                                 )
                 )
                 .toList();
+    }
+
+    private LocalTime resolveCheckInTime(
+            LocalTime checkInTime
+    ) {
+
+        if (checkInTime != null) {
+            return checkInTime;
+        }
+
+        return LocalTime.of(14, 0);
+    }
+
+    private LocalTime resolveCheckOutTime(
+            LocalTime checkOutTime
+    ) {
+
+        if (checkOutTime != null) {
+            return checkOutTime;
+        }
+
+        return LocalTime.of(11, 0);
     }
 
     private HotelDocument convertToHotelDocument(
@@ -727,44 +803,49 @@ public class InventoryServiceImpl implements InventoryService {
             LocalTime checkOutTime
     ) {
 
-        boolean anyProvided =
-                checkInDate != null
-                        || checkInTime != null
-                        || checkOutDate != null
-                        || checkOutTime != null;
+        boolean anyDateProvided =
+                checkInDate != null ||
+                        checkOutDate != null;
 
-        boolean allProvided =
-                checkInDate != null
-                        && checkInTime != null
-                        && checkOutDate != null
-                        && checkOutTime != null;
+        boolean anyTimeProvided =
+                checkInTime != null ||
+                        checkOutTime != null;
 
-        if (anyProvided && !allProvided) {
-
+        if (!anyDateProvided && anyTimeProvided) {
             throw new IllegalArgumentException(
-                    "Check-in date, check-in time, check-out date " +
-                            "and check-out time must all be provided."
+                    "Check-in and check-out dates are required when times are provided."
             );
         }
 
-        if (!allProvided) {
+        if (!anyDateProvided) {
             return;
         }
+
+        if (checkInDate == null || checkOutDate == null) {
+            throw new IllegalArgumentException(
+                    "Both check-in date and check-out date must be provided."
+            );
+        }
+
+        LocalTime effectiveCheckInTime =
+                resolveCheckInTime(checkInTime);
+
+        LocalTime effectiveCheckOutTime =
+                resolveCheckOutTime(checkOutTime);
 
         LocalDateTime checkIn =
                 LocalDateTime.of(
                         checkInDate,
-                        checkInTime
+                        effectiveCheckInTime
                 );
 
         LocalDateTime checkOut =
                 LocalDateTime.of(
                         checkOutDate,
-                        checkOutTime
+                        effectiveCheckOutTime
                 );
 
         if (!checkIn.isBefore(checkOut)) {
-
             throw new IllegalArgumentException(
                     "Check-out must be after check-in."
             );

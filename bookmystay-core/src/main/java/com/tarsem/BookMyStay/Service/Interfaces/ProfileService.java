@@ -1,4 +1,4 @@
-package com.tarsem.BookMyStay.Service;
+package com.tarsem.BookMyStay.Service.Interfaces;
 
 
 import com.tarsem.BookMyStay.dto.profile.ChangePasswordRequestDTO;

@@ -52,7 +52,11 @@ public interface RoomRepository extends JpaRepository<RoomEntity, Long> {
               WHERE i.room_id = r.id
                 AND i.date = :checkInDate
                 AND i.closed = false
-                AND (i.total_count - i.book_count - i.reserved_count) > 0
+                AND (
+                    COALESCE(i.total_count, 0)
+                    - COALESCE(i.book_count, 0)
+                    - COALESCE(i.reserved_count, 0)
+                ) > 0
           )
 
           AND NOT EXISTS (
@@ -129,22 +133,45 @@ public interface RoomRepository extends JpaRepository<RoomEntity, Long> {
     );
 
     @Query(value = """
-    SELECT DISTINCT r.hotel_id
-    FROM room r
-    WHERE NOT EXISTS (
-        SELECT 1
-        FROM bookings b
-        WHERE b.room_id = r.id
-          AND b.status IN (:activeStatuses)
-          AND (
-              b.check_in_date + b.check_in_time
-          ) < :checkOut
-          AND (
-              b.check_out_date + b.check_out_time
-          ) > :checkIn
-    )
-    """, nativeQuery = true)
+        SELECT DISTINCT r.hotel_id
+        FROM room r
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM bookings b
+            WHERE b.room_id = r.id
+              AND b.status IN (:activeStatuses)
+              AND (
+                  b.check_in_date + b.check_in_time
+              ) < :checkOut
+              AND (
+                  b.check_out_date + b.check_out_time
+              ) > :checkIn
+        )
+
+        AND NOT EXISTS (
+            SELECT 1
+            FROM generate_series(
+                CAST(:checkInDate AS date),
+                CAST(:checkOutDate AS date),
+                INTERVAL '1 day'
+            ) AS requested_date(search_date)
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM inventory i
+                WHERE i.room_id = r.id
+                  AND i.date = requested_date.search_date::date
+                  AND i.closed = false
+                  AND (
+                      COALESCE(i.total_count, 0)
+                      - COALESCE(i.book_count, 0)
+                      - COALESCE(i.reserved_count, 0)
+                  ) > 0
+            )
+        )
+        """, nativeQuery = true)
     List<Long> findAvailableHotelIds(
+            @Param("checkInDate") LocalDate checkInDate,
+            @Param("checkOutDate") LocalDate checkOutDate,
             @Param("checkIn") LocalDateTime checkIn,
             @Param("checkOut") LocalDateTime checkOut,
             @Param("activeStatuses") Collection<String> activeStatuses

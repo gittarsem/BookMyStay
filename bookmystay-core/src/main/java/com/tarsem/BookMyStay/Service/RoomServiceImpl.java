@@ -35,12 +35,16 @@ public class RoomServiceImpl implements RoomService {
     private final HotelElasticRepository elasticRepository;
     private final AuthorizationService authorizationService;
     private final RoomTypePricingRepository roomTypePricingRepository;
+    private final ElasticsearchAvailabilityService elasticsearchAvailabilityService;
 
     @Override
     @Transactional
     public RoomDTO addNewRoom(RoomDTO roomDTO, Long hotelId) {
 
-        log.info("Creating new physical room in hotel: {}", hotelId);
+        log.info(
+                "Creating new physical room in hotel: {}",
+                hotelId
+        );
 
         HotelEntity hotel =
                 authorizationService.getOwnedHotel(hotelId);
@@ -80,9 +84,7 @@ public class RoomServiceImpl implements RoomService {
 
         hotelRepository.save(hotel);
 
-        elasticRepository.save(
-                mapToDocument(hotel)
-        );
+        syncHotelToElasticsearch(hotel);
 
         return modelMapper.map(
                 savedRoom,
@@ -204,9 +206,7 @@ public class RoomServiceImpl implements RoomService {
 
         hotelRepository.save(hotel);
 
-        elasticRepository.save(
-                mapToDocument(hotel)
-        );
+        syncHotelToElasticsearch(hotel);
 
         return modelMapper.map(
                 updatedRoom,
@@ -251,9 +251,7 @@ public class RoomServiceImpl implements RoomService {
 
         hotelRepository.save(hotel);
 
-        elasticRepository.save(
-                mapToDocument(hotel)
-        );
+        syncHotelToElasticsearch(hotel);
 
         return "Deleted Room with id: " + roomId;
     }
@@ -315,5 +313,54 @@ public class RoomServiceImpl implements RoomService {
                     return dto;
                 })
                 .toList();
+    }
+
+    private void syncHotelToElasticsearch(
+            HotelEntity hotel
+    ) {
+
+        Boolean status =
+                elasticsearchAvailabilityService.getStatus();
+
+        if (Boolean.FALSE.equals(status)) {
+
+            log.warn(
+                    "Skipping Elasticsearch sync for hotel {} " +
+                            "because Elasticsearch is currently unavailable",
+                    hotel.getId()
+            );
+
+            return;
+        }
+
+        try {
+
+            log.debug(
+                    "Syncing hotel {} to Elasticsearch",
+                    hotel.getId()
+            );
+
+            elasticRepository.save(
+                    mapToDocument(hotel)
+            );
+
+            elasticsearchAvailabilityService.markAvailable();
+
+            log.debug(
+                    "Hotel {} successfully synchronized with Elasticsearch",
+                    hotel.getId()
+            );
+
+        } catch (Exception e) {
+
+            elasticsearchAvailabilityService.markUnavailable();
+
+            log.error(
+                    "Failed to synchronize hotel {} with Elasticsearch. " +
+                            "Main database operation will continue.",
+                    hotel.getId(),
+                    e
+            );
+        }
     }
 }

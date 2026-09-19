@@ -37,12 +37,13 @@ public interface HotelRepository
                     :keyword IS NULL
                     OR TRIM(:keyword) = ''
                     OR LOWER(h.name) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
+                    OR LOWER(h.location) LIKE LOWER(CONCAT('%', TRIM(:keyword), '%'))
               )
 
               AND (
                     :city IS NULL
                     OR TRIM(:city) = ''
-                    OR LOWER(h.location) = LOWER(TRIM(:city))
+                    OR LOWER(h.location) LIKE LOWER(CONCAT('%', TRIM(:city), '%'))
               )
 
               AND (

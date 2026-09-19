@@ -1,7 +1,7 @@
 package com.tarsem.BookMyStay.Controller;
 
 
-import com.tarsem.BookMyStay.Service.ProfileService;
+import com.tarsem.BookMyStay.Service.Interfaces.ProfileService;
 import com.tarsem.BookMyStay.dto.profile.ChangePasswordRequestDTO;
 import com.tarsem.BookMyStay.dto.profile.DeleteAccountRequestDTO;
 import com.tarsem.BookMyStay.dto.profile.ProfileDTO;
