@@ -16,6 +16,8 @@
 </p>
 
 <p align="center">
+  <a href="https://bookmystay-frontend-one.vercel.app">Live</a>
+  •
   <a href="https://github.com/gittarsem/BookMyStay">Backend</a>
   •
   <a href="https://github.com/gittarsem/BookMyStay-Frontend">Frontend</a>
