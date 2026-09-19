@@ -55,7 +55,8 @@ public class SecurityConfig {
                                 "/api/payments/**",
                                 "/payment-test.html",
                                 "/kafka/**",
-                                "/admin/reindex"
+                                "/admin/reindex",
+                                "/health"
                         ).permitAll()
 
 
